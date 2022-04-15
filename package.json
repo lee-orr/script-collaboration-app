@@ -1,5 +1,7 @@
 {
     "scripts": {
-        "backend": "cd ./backend && npx @cloudflare/wrangler dev"
+        "backend": "cd ./backend && npx @cloudflare/wrangler dev",
+        "setup": "cargo install trunk && cd frontend && npm install",
+        "frontend": "cd ./frontend && npm run dev"
     }
 }
