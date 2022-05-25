@@ -9,6 +9,10 @@
     "prod": "npm run prod:css && trunk build --release",
     "prod:css": "npx tailwindcss -c tailwind.config.js -o tailwind.css --minify"
   },
+  "dependencies": {
+    "tailwindcss": "^3.0.24",
+    "babylonjs": "^5.7.0"
+  },
   "devDependencies": {
     "concurrently": "^7.1.0"
   }
