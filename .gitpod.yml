@@ -1,2 +1,2 @@
 tasks:
-  - init: npm run setup
+  - command: npm run setup

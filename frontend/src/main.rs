@@ -5,6 +5,7 @@ use yew::html::Scope;
 use yew::prelude::*;
 
 mod data;
+pub mod fountain;
 
 enum Msg {
     FetchNewUser,
