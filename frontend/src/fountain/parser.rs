@@ -18,10 +18,28 @@ pub fn parse_fountain(source: &str) -> Script {
     }
 }
 
+fn parse_scene_heading(line: &str) -> Option<String> {
+    if line.starts_with(".") {
+        Some(line[1..].to_owned())
+    } else if line.starts_with("INT") || line.starts_with("EXT") || line.starts_with("EST") || line.starts_with("I/E") ||
+    line.starts_with("int") || line.starts_with("ext") || line.starts_with("est") || line.starts_with("i/e") {
+        Some(line.to_owned())
+    } else {
+        None
+    }
+}
+
 fn parse_lines(slice: &Vec<String>) -> Vec<Line>{
     slice
         .iter()
-        .map(|v| Line::Action(v.trim().to_owned()))
+        .map(|v| {
+            let v = v.trim();
+            if let Some(headhing) = parse_scene_heading(v) {
+                Line::SceneHeading(headhing)
+            } else {
+                Line::Action(v.to_owned())
+            }
+})
         .collect::<Vec<Line>>()
 }
 
@@ -123,5 +141,126 @@ mod tests {
         } else {
             assert!(false, "didn't parse line")
         }
+    }
+
+    #[test]
+    fn defaults_to_action_if_no_other_option_exists() {
+        let result = parse_fountain("well hello there
+        how are you");
+        assert_eq!(result.lines.len(), 2);
+        if let Line::Action(line) = &result.lines[0] {
+            assert_eq!(line, "well hello there")
+        } else {
+            assert!(false, "didn't parse line")
+        }
+        if let Line::Action(line) = &result.lines[1] {
+            assert_eq!(line, "how are you")
+        } else {
+            assert!(false, "didn't parse line")
+        }
+    }
+
+    #[test]
+    fn correctly_parses_scene_heading() {
+        let result = parse_fountain(".A HEADING
+        INT Other Heading
+EXT More Headings
+EST Heading 4
+INT./EXT Heading 5
+INT/EXT Heading 6
+I/E Heading 7
+int Other Heading
+ext More Headings
+est Heading 4
+int./ext Heading 5
+int/ext Heading 6
+i/e Heading 7");
+assert_eq!(result.lines.len(), 13);
+
+if let Line::SceneHeading(line) = &result.lines[0] {
+    assert_eq!(line, "A HEADING")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+if let Line::SceneHeading(line) = &result.lines[1] {
+    assert_eq!(line, "INT Other Heading")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+if let Line::SceneHeading(line) = &result.lines[2] {
+    assert_eq!(line, "EXT More Headings")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+if let Line::SceneHeading(line) = &result.lines[3] {
+    assert_eq!(line, "EST Heading 4")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+
+if let Line::SceneHeading(line) = &result.lines[4] {
+    assert_eq!(line, "INT./EXT Heading 5")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+if let Line::SceneHeading(line) = &result.lines[5] {
+    assert_eq!(line, "INT/EXT Heading 6")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+
+if let Line::SceneHeading(line) = &result.lines[6] {
+    assert_eq!(line, "I/E Heading 7")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+
+if let Line::SceneHeading(line) = &result.lines[7] {
+    assert_eq!(line, "int Other Heading")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+
+if let Line::SceneHeading(line) = &result.lines[8] {
+    assert_eq!(line, "ext More Headings")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+
+if let Line::SceneHeading(line) = &result.lines[9] {
+    assert_eq!(line, "est Heading 4")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+
+if let Line::SceneHeading(line) = &result.lines[10] {
+    assert_eq!(line, "int./ext Heading 5")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+
+if let Line::SceneHeading(line) = &result.lines[11] {
+    assert_eq!(line, "int/ext Heading 6")
+} else {
+    assert!(false, "didn't parse line")
+}
+
+
+if let Line::SceneHeading(line) = &result.lines[12] {
+    assert_eq!(line, "i/e Heading 7")
+} else {
+    assert!(false, "didn't parse line")
+}
     }
 }

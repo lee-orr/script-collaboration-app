@@ -1,7 +1,7 @@
 use yew::prelude::*;
 use yew::{virtual_dom::AttrValue};
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, console};
+use web_sys::{HtmlElement, console, HtmlTextAreaElement};
 
 pub enum EditorMsg {
     None,
@@ -37,9 +37,9 @@ impl Component for Editor {
         let onchange = ctx.link().callback(|event: InputEvent| {
             let target = event.target();
             if let Some(target) = target {
-                let input = target.dyn_into::<HtmlElement>();
+                let input = target.dyn_into::<HtmlTextAreaElement>();
                 if let Ok(input) = input {
-                    return EditorMsg::ChangedContent(input.inner_html());
+                    return EditorMsg::ChangedContent(input.value());
                 }
             }
             EditorMsg::None
@@ -48,9 +48,10 @@ impl Component for Editor {
         html!(
             <div class="h-full w-full flex flex-col items-stretch justify-center gap-2 p-2">
                 <div class="text-gray-100 font-medium">{&title}</div>
-                <div contenteditable={CONTENTEDITABLE} class="whitespace-pre bg-gray-700 text-gray-100 font-light" oninput={onchange}>
-                    {&content}
-                </div>
+                // <div contenteditable={CONTENTEDITABLE} class="whitespace-pre bg-gray-700 text-gray-100 font-light" oninput={onchange}>
+                //     {&content}
+                // </div>
+                <textarea class="bg-gray-700 text-gray-100 font-light flex-grow" oninput={onchange} value={content}/>
             </div>)
     }
 
