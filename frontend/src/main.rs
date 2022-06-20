@@ -3,17 +3,19 @@ extern crate reqwest_wasm;
 use std::borrow::Borrow;
 use yew::html::Scope;
 use yew::prelude::*;
+use crate::editor::Editor;
 
 mod data;
 pub mod fountain;
+mod editor;
 
 enum Msg {
-    FetchNewUser,
-    UpdatePerson(data::Result),
+    UpdateContent(String)
 }
 
 struct App {
-    user: data::Result,
+    content: String,
+    title: String
 }
 
 impl Component for App {
@@ -22,7 +24,8 @@ impl Component for App {
 
     fn create(ctx: &Context<Self>) -> Self {
         Self {
-            user: data::Result::default(),
+            content: format!("Some content..."),
+            title: format!("A Title")
         }
     }
 
@@ -30,68 +33,33 @@ impl Component for App {
         let link = ctx.link();
 
         match msg {
-            Msg::FetchNewUser => {
-                link.send_future(App::get_person());
-
-                false
-            }
-            Msg::UpdatePerson(person) => {
-                log::info!("Update Person: {:?}", { &person });
-                self.user = person;
-
+            Msg::UpdateContent(content) => {
+                self.content = content;
                 true
             }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let onclick = ctx.link().callback(|_| Msg::FetchNewUser);
+        let changed = ctx.link().callback(|value: String| Msg::UpdateContent(value));
+
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+
+        let div = document.create_element("div").unwrap();
+        div.set_inner_html(&self.content.clone());
+
+        let display = Html::VRef(div.into());
 
         html! {
-            <div class="h-screen bg-gray-600 w-full flex flex-col items-center justify-center gap-y-4">
-                <div class="w-96 h-80 bg-gray-800 shadow-md border-indigo-400 h-auto w-auto p-4 pl-8 pr-8 rounded-md font-medium text-xl flex flex-col items-center">
-                    <img class="rounded-full w-24 h-24" src={self.user.picture.large.to_string()} />
-                    <div class="mt-4 mb-4 flex flex-col gap-y-1">
-                        <div class="flex flex-row">
-                            <span class="text-gray-100 font-medium">{"Gender: "}</span>
-                            <span class="text-gray-300 font-light ml-2">{&self.user.gender}</span>
-                        </div>
-                        <div class="flex flex-row">
-                            <span class="text-gray-100 font-medium">{"Registered: "}</span>
-                            <span class="text-gray-300 font-light ml-2">{&self.user.registered.date}</span>
-                        </div>
-                        <div class="flex flex-row">
-                            <span class="text-gray-100 font-medium">{"Phone number: "}</span>
-                            <span class="text-gray-300 font-light ml-2">{&self.user.phone}</span>
-                        </div>
-                    </div>
-                    <span class="font-bold text-xl text-center text-indigo-400"> {&self.user.name.first} {" "} {&self.user.name.last} </span>
-                    <span class="font-light text-lg text-center text-gray-400"> {"Password: "} {&self.user.login.password} </span>
-                </div>
-
-                <button {onclick} class="bg-indigo-400 shadow-md h-auto w-auto pl-4 pr-4 pb-2 pt-2 rounded-md font-medium text-xl text-white hover:bg-indigo-300">{"Find date"}</button>
+            <div class="h-screen bg-gray-600 w-full flex flex-row items-center justify-center gap-y-3">
+                <Editor changed={changed} content={self.content.to_owned()} title={self.title.to_owned()}/>
+                {display}
             </div>
         }
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-        if first_render {
-            ctx.link().send_future(App::get_person());
-        }
-    }
-}
-
-impl App {
-    async fn get_person() -> Msg {
-        let res = reqwest_wasm::get("https://randomuser.me/api/1.2")
-            .await
-            .unwrap()
-            .text()
-            .await
-            .unwrap();
-
-        let parsed_json = serde_json::from_str::<data::Root>(res.as_str()).unwrap();
-        return Msg::UpdatePerson((*parsed_json.results.first().unwrap()).clone());
     }
 }
 
