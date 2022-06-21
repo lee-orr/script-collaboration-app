@@ -48,9 +48,12 @@ fn view_title(script: &Script) -> yew::Html {
 
 fn view_line(line: &Line) -> yew::Html {
     match line {
+        Line::Parenthetical(dialogue) => html!(<div class="flex flex-row justify-center">{format_text(&dialogue)}</div>),
+        Line::Dialogue(dialogue, _) => html!(<div class="flex flex-row justify-center">{format_text(&dialogue)}</div>),
         Line::Character(character) => html!(<div class="flex flex-row justify-center uppercase pt-2">{format_text(&character)}</div>),
         Line::SceneHeading(scene) => html!(<div class="flex flex-row justify-start uppercase pb-2">{format_text(&scene)}</div>),
         Line::Action(action) => html!(<div class="flex flex-row justify-start">{format_text(&action)}</div>),
+        Line::Lyrics(lyric, _) => html!(<div class="flex flex-row justify-center italic"><div class="text-start w-1/2">{format_text(&lyric)}</div></div>),
         Line::Empty => html!(<br/>),
         _ => html!(<>{"a"}</>)
     }
