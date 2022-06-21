@@ -102,6 +102,14 @@ fn parse_centered_text(line: &str) -> Option<String> {
     }
 }
 
+fn parse_page_break(line: &str) -> bool {
+    if line.starts_with("===") {
+        true
+    } else {
+        false
+    }
+}
+
 fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
     let mut previous_line = Line::Empty;
     let mut current_character = "".to_owned();
@@ -111,6 +119,8 @@ fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
             let v = v.trim();
             let result = if v == "" {
                 Line::Empty
+            } else if parse_page_break(v) {
+                Line::PageBreak
             } else if let Some(centered) = parse_centered_text(v) {
                 Line::Action(centered, true)
             } else if let Some(heading) = parse_scene_heading(v) {
@@ -529,6 +539,17 @@ i/e Heading 7",
         if let Line::Action(line, centered) = &result.lines[0] {
             assert_eq!(line, "HEY THERE");
             assert!(centered);
+        } else {
+            assert!(false, "didn't parse line");
+        }
+    }
+
+    #[test]
+    fn correctly_parse_page_breaks() {
+        let result = parse_fountain("===");
+        assert_eq!(result.lines.len(), 1);
+        if let Line::PageBreak = &result.lines[0] {
+            assert!(true);
         } else {
             assert!(false, "didn't parse line");
         }
