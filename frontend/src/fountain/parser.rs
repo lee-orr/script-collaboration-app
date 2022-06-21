@@ -3,12 +3,20 @@ use std::collections::HashMap;
 use super::types::{Line, Script, Title};
 
 pub fn parse_fountain(source: &str) -> Script {
-    let source = source
-        .lines()
-        .into_iter()
-        .map(|v| v.to_owned())
-        .collect::<Vec<String>>();
-    let slice = source.split(|v| v.trim() == "").collect::<Vec<&[String]>>();
+    let source = parse_boneyard(source);
+    let source = source.into_iter()
+        .map(|(content, boneyard)| {
+            if boneyard {
+                vec![(content, boneyard)]
+            } else {
+                content.lines()
+                .into_iter()
+                .map(|v| (v.to_owned(), boneyard)).collect()
+            }
+        })
+        .flatten()
+        .collect::<Vec<(String, bool)>>();
+    let slice = source.split(|(v, _)| v.trim() == "").collect::<Vec<&[(String, bool)]>>();
     let (title, contains_title) = parse_title(&slice.get(0));
     let continued_slice = if contains_title {
         slice[1..]
@@ -16,11 +24,11 @@ pub fn parse_fountain(source: &str) -> Script {
             .into_iter()
             .map(|v| {
                 let mut iter = v.iter().map(|v| v.to_owned()).collect::<Vec<_>>();
-                iter.push("".to_owned());
+                iter.push(("".to_owned(), false));
                 iter
             })
             .flatten()
-            .collect::<Vec<String>>()
+            .collect::<Vec<(String, bool)>>()
     } else {
         source
     };
@@ -29,6 +37,14 @@ pub fn parse_fountain(source: &str) -> Script {
         title,
         lines: parse_lines(&continued_slice),
     }
+}
+
+fn parse_boneyard(source: &str) -> Vec<(String, bool)> {
+    let mut boneyard = false;
+    source.split("/*").map(|v| v.split("*/")).flatten().map(|v| {
+        boneyard = !boneyard;
+        (v.to_owned(), !boneyard)
+    }).collect::<Vec<(String, bool)>>()
 }
 
 fn parse_scene_heading(line: &str) -> Option<String> {
@@ -137,12 +153,15 @@ pub fn parse_line(line: &str, previous_line: &Line, current_character: &str) -> 
     }
 }
 
-fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
+fn parse_lines(slice: &Vec<(String, bool)>) -> Vec<Line> {
     let mut previous_line = Line::Empty;
     let mut current_character = "".to_owned();
     slice
         .iter()
-        .map(|v| {
+        .map(|(v, boneyard)| {
+            if *boneyard {
+                return Line::Boneyard(v.to_owned());
+            }
             let (result, character) = parse_line(v, &previous_line, &current_character);
             previous_line = result.clone();
             if let Some(character) = character {
@@ -153,18 +172,18 @@ fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
         .collect::<Vec<Line>>()
 }
 
-fn parse_title(source: &Option<&&[String]>) -> (Title, bool) {
+fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
     let mut title = Title::default();
     if let Some(section) = source {
-        let first_line: Option<&String> = section.get(0);
-        if first_line == None || first_line.unwrap().split(":").collect::<Vec<_>>().len() != 2 {
+        let first_line: Option<&(String, bool)> = section.get(0);
+        if first_line == None || first_line.unwrap().0.split(":").collect::<Vec<_>>().len() != 2 {
             return (title, false);
         }
 
         let mut last_key: Option<String> = None;
         let mut last_value: Option<String> = None;
 
-        for line in section.iter() {
+        for (line, _) in section.iter() {
             if line.len() == 0 {
                 break;
             }
@@ -556,6 +575,32 @@ i/e Heading 7",
         assert_eq!(result.lines.len(), 1);
         if let Line::PageBreak = &result.lines[0] {
             assert!(true);
+        } else {
+            assert!(false, "didn't parse line");
+        }
+    }
+
+    #[test]
+    fn can_parse_the_boneyard() {
+        let result = parse_fountain("testing /* wehawe
+        wthawet
+        wtrwat */ something");
+
+        assert_eq!(result.lines.len(), 3);
+        if let Line::Action(line, _) = &result.lines[0] {
+            assert_eq!(line, "testing");
+        } else {
+            assert!(false, "didn't parse line");
+        }
+        if let Line::Action(line, _) = &result.lines[2] {
+            assert_eq!(line, "something");
+        } else {
+            assert!(false, "didn't parse line");
+        }
+        if let Line::Boneyard(line) = &result.lines[1] {
+            assert_eq!(line, " wehawe
+            wthawet
+            wtrwat ");
         } else {
             assert!(false, "didn't parse line");
         }

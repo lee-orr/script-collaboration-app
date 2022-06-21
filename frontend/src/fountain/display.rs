@@ -120,6 +120,7 @@ fn view_line(line: &Line) -> yew::Html {
         Line::Lyrics(lyric, _) => html!(<div class="flex flex-row justify-center italic"><div class="text-start w-1/2">{format_text(&lyric)}</div></div>),
         Line::Transition(transition) => html!(<div class="flex flex-row justify-end uppercase pb-2 pt-2 pr-5 pl-5">{format_text(&transition)}</div>),
         Line::PageBreak => html!(<div class="border-b flex-grow border-black m-2"/>),
+        Line::Boneyard(boneyard) => html!(<div class="flex flex-row justify-right text-gray-400 border-gray-300 m-2 p-2 bg-gray-800">{boneyard}</div>),
         Line::Empty => html!(<br/>),
         _ => html!(<>{"a"}</>)
     }
