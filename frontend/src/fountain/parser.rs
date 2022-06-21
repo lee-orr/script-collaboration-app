@@ -110,38 +110,44 @@ fn parse_page_break(line: &str) -> bool {
     }
 }
 
+pub fn parse_line(line: &str, previous_line: &Line, current_character: &str) -> (Line, Option<String>) {
+    let v = line.trim();
+    if v == "" {
+        (Line::Empty, None)
+    } else if parse_page_break(v) {
+        (Line::PageBreak, None)
+    } else if let Some(centered) = parse_centered_text(v) {
+        (Line::Action(centered, true), None)
+    } else if let Some(heading) = parse_scene_heading(v) {
+        (Line::SceneHeading(heading), None)
+    } else if let Some(transition) = parse_transitions(v, &previous_line) {
+        (Line::Transition(transition), None)
+    } else if let Some(character) = parse_character_heading(v, &previous_line) {
+        (Line::Character(character.clone()), Some(character))
+    } else if let Some(lyrics) = parse_lyrics(v) {
+        (Line::Lyrics(lyrics, current_character.to_owned()), None)
+    } else if let Some((dialogue, parenthetical)) = parse_dialog(v, &previous_line) {
+        if (parenthetical) {
+            (Line::Parenthetical(dialogue), None)
+        } else {
+            (Line::Dialogue(dialogue, current_character.to_owned()), None)
+        }
+    } else {
+        (Line::Action(v.to_owned(), false), None)
+    }
+}
+
 fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
     let mut previous_line = Line::Empty;
     let mut current_character = "".to_owned();
     slice
         .iter()
         .map(|v| {
-            let v = v.trim();
-            let result = if v == "" {
-                Line::Empty
-            } else if parse_page_break(v) {
-                Line::PageBreak
-            } else if let Some(centered) = parse_centered_text(v) {
-                Line::Action(centered, true)
-            } else if let Some(heading) = parse_scene_heading(v) {
-                Line::SceneHeading(heading)
-            } else if let Some(transition) = parse_transitions(v, &previous_line) {
-                Line::Transition(transition)
-            } else if let Some(character) = parse_character_heading(v, &previous_line) {
-                current_character = character.to_owned();
-                Line::Character(character)
-            } else if let Some(lyrics) = parse_lyrics(v) {
-                Line::Lyrics(lyrics, current_character.clone())
-            } else if let Some((dialogue, parenthetical)) = parse_dialog(v, &previous_line) {
-                if (parenthetical) {
-                    Line::Parenthetical(dialogue)
-                } else {
-                    Line::Dialogue(dialogue, current_character.clone())
-                }
-            } else {
-                Line::Action(v.to_owned(), false)
-            };
+            let (result, character) = parse_line(v, &previous_line, &current_character);
             previous_line = result.clone();
+            if let Some(character) = character {
+                current_character = character;
+            }
             result
         })
         .collect::<Vec<Line>>()
