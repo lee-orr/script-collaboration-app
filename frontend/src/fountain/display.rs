@@ -10,7 +10,71 @@ pub struct DisplayProps {
 pub struct Display {}
 
 fn format_text(text: &str) -> yew::Html {
-    html!(<>{text}</>)
+    let mut process_underline = false;
+    let processing = text.split("_").map(|v| {
+        if v.len() == 0 {
+            (v.to_owned(), false)
+        } else if v.ends_with("\\") {
+            (format!("{}_", v[0..v.len() - 1].to_owned()), process_underline)
+        } else {
+            process_underline = if process_underline { false} else { true};
+            (v.to_owned(), !process_underline)
+        }
+    }).filter(|v| v.0.len() > 0).collect::<Vec<(String, bool)>>();
+
+    let mut process_bold = false;
+    let processing = processing.into_iter().enumerate().map(|(segment,(line, underline))| {
+        let line = if line.starts_with("**") { format!(" {}", line)} else { line };
+        let line = if line.ends_with("**") { format!("{} ", line)} else { line };
+        let split = line.split("**").collect::<Vec<_>>();
+        let len = split.len();
+        split.into_iter().enumerate().map(|(i,v)| {
+            if i == len - 1 {
+                (v.to_owned(), underline, process_bold)
+            } else if v.len() == 0 {
+                (v.to_owned(), false, false)
+            } else if v.ends_with("\\") {
+                (format!("{}**", v[0..v.len() - 1].to_owned()), underline, process_bold)
+            } else {
+                process_bold = if process_bold { false} else { true};
+                (v.to_owned(), underline, !process_bold)
+            }
+        }).collect::<Vec<(String, bool, bool)>>()
+    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool)>>();
+
+    let mut process_italic = false;
+    let processing = processing.into_iter().map(|(line, underline, bold)| {
+        let line = if line.starts_with("*") { format!(" {}", line)} else { line };
+        let line = if line.ends_with("*") { format!("{} ", line)} else { line };
+        let split = line.split("*").collect::<Vec<_>>();
+        let len = split.len();
+        split.into_iter().enumerate().map(|(i,v)| {
+            if i == len - 1 {
+                (v.to_owned(), underline, bold, process_italic)
+            } else if v.len() == 0 {
+                (v.to_owned(), false, false, false)
+            } else if v.ends_with("\\") {
+                (format!("{}*", v[0..v.len() - 1].to_owned()), underline, bold, process_italic)
+            } else {
+                process_italic = if process_italic { false} else { true};
+                (v.to_owned(), underline, bold, !process_italic)
+            }
+        }).collect::<Vec<(String, bool, bool, bool)>>()
+    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool, bool)>>();
+
+    html!(<span>{processing.into_iter().map(|(line, underline, bold, italic)| {
+        let mut classes = "".to_owned();
+        if underline {
+            classes = format!("{} {}", classes, "underline");
+        }
+        if bold {
+            classes = format!("{} {}", classes, "font-bold");
+        }
+        if italic {
+            classes = format!("{} {}", classes, "italic");
+        }
+        html!(<span class={classes}>{line}</span>)
+    }).collect::<Vec<_>>()}</span>)
 }
 
 fn view_title(script: &Script) -> yew::Html {
