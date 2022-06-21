@@ -54,6 +54,7 @@ fn view_line(line: &Line) -> yew::Html {
         Line::SceneHeading(scene) => html!(<div class="flex flex-row justify-start uppercase pb-2">{format_text(&scene)}</div>),
         Line::Action(action) => html!(<div class="flex flex-row justify-start">{format_text(&action)}</div>),
         Line::Lyrics(lyric, _) => html!(<div class="flex flex-row justify-center italic"><div class="text-start w-1/2">{format_text(&lyric)}</div></div>),
+        Line::Transition(transition) => html!(<div class="flex flex-row justify-end uppercase pb-2 pt-2 pr-5 pl-5">{format_text(&transition)}</div>),
         Line::Empty => html!(<br/>),
         _ => html!(<>{"a"}</>)
     }

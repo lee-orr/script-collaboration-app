@@ -78,6 +78,16 @@ fn parse_lyrics(line: &str) -> Option<String> {
     }
 }
 
+fn parse_transitions(line: &str, previous_line: &Line) -> Option<String> {
+    if line.starts_with(">") && !line.ends_with("<") {
+        Some(line[1..].trim().to_owned())
+    } else if matches!(previous_line, Line::Empty) && line.to_uppercase() == line && line.ends_with("TO:") {
+        Some(line.to_owned())
+    } else {
+        None
+    }
+}
+
 fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
     let mut previous_line = Line::Empty;
     let mut current_character = "".to_owned();
@@ -89,6 +99,8 @@ fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
                 Line::Empty
             } else if let Some(heading) = parse_scene_heading(v) {
                 Line::SceneHeading(heading)
+            } else if let Some(transition) = parse_transitions(v, &previous_line) {
+                Line::Transition(transition)
             } else if let Some(character) = parse_character_heading(v, &previous_line) {
                 current_character = character.to_owned();
                 Line::Character(character)
@@ -458,6 +470,31 @@ i/e Heading 7",
         if let Line::Lyrics(line, character) = &result.lines[1] {
             assert_eq!(line, "part of a song");
             assert_eq!(character, "CHARACTER");
+        } else {
+            assert!(false, "didn't parse line");
+        }
+    }
+
+    #[test]
+    fn correctly_parse_transitions() {
+        let result = parse_fountain("some action
+
+        CUT TO:
+        
+        another action
+        
+        > Another transition
+        
+        wow");
+        
+        assert_eq!(result.lines.len(), 9);
+        if let Line::Transition(line) = &result.lines[2] {
+            assert_eq!(line, "CUT TO:");
+        } else {
+            assert!(false, "didn't parse line");
+        }
+        if let Line::Transition(line) = &result.lines[6] {
+            assert_eq!(line, "Another transition");
         } else {
             assert!(false, "didn't parse line");
         }
