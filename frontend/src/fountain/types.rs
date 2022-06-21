@@ -19,6 +19,7 @@ pub enum Line {
     Boneyard(String),
     Section(String),
     Synopsis(String),
+    Empty,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default, PartialEq, Eq)]

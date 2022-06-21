@@ -71,7 +71,7 @@ impl Component for App {
                 <div class="h-full w-1/2 flex flex-col justify-center">
                     <Editor changed={changed} content={self.content.to_owned()} title={self.title.to_owned()}/>
                 </div>
-                <div class="whitespace-pre w-1/2 h-full overflow-scroll">
+                <div class="w-1/2 text-gray-100 h-full overflow-y-scroll">
                     // {display}
                     if let Some(parsed) = &self.parsed {
                         <Display script={parsed.clone()}/>

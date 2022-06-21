@@ -48,7 +48,10 @@ fn view_title(script: &Script) -> yew::Html {
 
 fn view_line(line: &Line) -> yew::Html {
     match line {
+        Line::Character(character) => html!(<div class="flex flex-row justify-center uppercase pt-2">{format_text(&character)}</div>),
+        Line::SceneHeading(scene) => html!(<div class="flex flex-row justify-start uppercase pb-2">{format_text(&scene)}</div>),
         Line::Action(action) => html!(<div class="flex flex-row justify-start">{format_text(&action)}</div>),
+        Line::Empty => html!(<br/>),
         _ => html!(<>{"a"}</>)
     }
 }
