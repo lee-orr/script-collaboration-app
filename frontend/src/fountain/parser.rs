@@ -62,9 +62,12 @@ fn parse_dialog(line: &str, previous_line: &Line) -> Option<(String, bool)> {
         Line::Character(_) => true,
         Line::Dialogue(_, _) => true,
         Line::Parenthetical(_) => true,
-        _ => false
+        _ => false,
     } {
-        Some((line.to_owned(), line.starts_with("(") && line.ends_with(")")))
+        Some((
+            line.to_owned(),
+            line.starts_with("(") && line.ends_with(")"),
+        ))
     } else {
         None
     }
@@ -81,8 +84,19 @@ fn parse_lyrics(line: &str) -> Option<String> {
 fn parse_transitions(line: &str, previous_line: &Line) -> Option<String> {
     if line.starts_with(">") && !line.ends_with("<") {
         Some(line[1..].trim().to_owned())
-    } else if matches!(previous_line, Line::Empty) && line.to_uppercase() == line && line.ends_with("TO:") {
+    } else if matches!(previous_line, Line::Empty)
+        && line.to_uppercase() == line
+        && line.ends_with("TO:")
+    {
         Some(line.to_owned())
+    } else {
+        None
+    }
+}
+
+fn parse_centered_text(line: &str) -> Option<String> {
+    if line.starts_with(">") && line.ends_with("<") {
+        Some(line[1..line.len() - 1].trim().to_owned())
     } else {
         None
     }
@@ -95,8 +109,10 @@ fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
         .iter()
         .map(|v| {
             let v = v.trim();
-            let result =  if v == "" {
+            let result = if v == "" {
                 Line::Empty
+            } else if let Some(centered) = parse_centered_text(v) {
+                Line::Action(centered, true)
             } else if let Some(heading) = parse_scene_heading(v) {
                 Line::SceneHeading(heading)
             } else if let Some(transition) = parse_transitions(v, &previous_line) {
@@ -113,7 +129,7 @@ fn parse_lines(slice: &Vec<String>) -> Vec<Line> {
                     Line::Dialogue(dialogue, current_character.clone())
                 }
             } else {
-                Line::Action(v.to_owned())
+                Line::Action(v.to_owned(), false)
             };
             previous_line = result.clone();
             result
@@ -221,7 +237,7 @@ mod tests {
         assert_eq!(result.title.author.unwrap(), "Someone Special");
         assert_eq!(result.title.meta.get("Unknown").unwrap(), "Unknown?");
         assert_eq!(result.lines.len(), 2);
-        if let Line::Action(line) = &result.lines[0] {
+        if let Line::Action(line, _) = &result.lines[0] {
             assert_eq!(line, "the actual script starts here")
         } else {
             assert!(false, "didn't parse line")
@@ -235,12 +251,12 @@ mod tests {
         how are you",
         );
         assert_eq!(result.lines.len(), 2);
-        if let Line::Action(line) = &result.lines[0] {
+        if let Line::Action(line, _) = &result.lines[0] {
             assert_eq!(line, "well hello there")
         } else {
             assert!(false, "didn't parse line")
         }
-        if let Line::Action(line) = &result.lines[1] {
+        if let Line::Action(line, _) = &result.lines[1] {
             assert_eq!(line, "how are you")
         } else {
             assert!(false, "didn't parse line")
@@ -355,7 +371,7 @@ i/e Heading 7",
             testing some dialogue and shit",
         );
         assert_eq!(result.lines.len(), 5);
-        if let Line::Action(line) = &result.lines[1] {
+        if let Line::Action(line, _) = &result.lines[1] {
             assert_eq!(line, "THIS IS NOT A CHARACTER")
         } else {
             assert!(false, "didn't parse line")
@@ -379,7 +395,7 @@ i/e Heading 7",
             testing some dialogue and shit",
         );
         assert_eq!(result.lines.len(), 6);
-        if let Line::Action(line) = &result.lines[1] {
+        if let Line::Action(line, _) = &result.lines[1] {
             assert_eq!(line, "THIS IS NOT A CHARACTER")
         } else {
             assert!(false, "didn't parse line")
@@ -455,7 +471,7 @@ i/e Heading 7",
             assert!(false, "didn't parse line");
         }
 
-        if let Line::Action(line) = &result.lines[6] {
+        if let Line::Action(line, _) = &result.lines[6] {
             assert_eq!(line, "and an action");
         } else {
             assert!(false, "didn't parse line");
@@ -464,8 +480,10 @@ i/e Heading 7",
 
     #[test]
     fn correctly_parse_lyrics() {
-        let result = parse_fountain("CHARACTER
-        ~ part of a song");
+        let result = parse_fountain(
+            "CHARACTER
+        ~ part of a song",
+        );
         assert_eq!(result.lines.len(), 2);
         if let Line::Lyrics(line, character) = &result.lines[1] {
             assert_eq!(line, "part of a song");
@@ -477,7 +495,8 @@ i/e Heading 7",
 
     #[test]
     fn correctly_parse_transitions() {
-        let result = parse_fountain("some action
+        let result = parse_fountain(
+            "some action
 
         CUT TO:
         
@@ -485,8 +504,9 @@ i/e Heading 7",
         
         > Another transition
         
-        wow");
-        
+        wow",
+        );
+
         assert_eq!(result.lines.len(), 9);
         if let Line::Transition(line) = &result.lines[2] {
             assert_eq!(line, "CUT TO:");
@@ -495,6 +515,20 @@ i/e Heading 7",
         }
         if let Line::Transition(line) = &result.lines[6] {
             assert_eq!(line, "Another transition");
+        } else {
+            assert!(false, "didn't parse line");
+        }
+    }
+
+    #[test]
+    fn correctly_parse_centered_text() {
+        let result = parse_fountain(
+            "> HEY THERE <",
+        );
+        assert_eq!(result.lines.len(), 1);
+        if let Line::Action(line, centered) = &result.lines[0] {
+            assert_eq!(line, "HEY THERE");
+            assert!(centered);
         } else {
             assert!(false, "didn't parse line");
         }

@@ -5,7 +5,7 @@ use yew::Properties;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum Line {
-    Action(String),
+    Action(String, bool),
     SceneHeading(String),
     Character(String),
     Dialogue(String, String),
@@ -13,7 +13,6 @@ pub enum Line {
     DualDialogue(Vec<(String, String)>),
     Lyrics(String, String),
     Transition(String),
-    CenteredText(String),
     PageBreak,
     Note(String),
     Boneyard(String),
