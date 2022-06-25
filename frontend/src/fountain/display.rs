@@ -11,7 +11,7 @@ pub struct Display {}
 
 fn format_text(text: &str) -> yew::Html {
     let mut process_underline = false;
-    let processing = text.split("_").map(|v| {
+    let processing = text.replace("&nbsp;","\n").split("_").map(|v| {
         if v.len() == 0 {
             (v.to_owned(), false)
         } else if v.ends_with("\\") {
