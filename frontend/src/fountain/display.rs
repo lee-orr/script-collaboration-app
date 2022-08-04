@@ -62,7 +62,29 @@ fn format_text(text: &str) -> yew::Html {
         }).collect::<Vec<(String, bool, bool, bool)>>()
     }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool, bool)>>();
 
-    html!(<span>{processing.into_iter().map(|(line, underline, bold, italic)| {
+    let mut processing_note = false;
+    let processing = processing.into_iter().map(|(line, underline, bold, italic)| {
+        let line = if line.starts_with("[[") { format!(" {}", line)} else { line };
+        let line = if line.ends_with("]]") { format!("{} ", line)} else { line };
+        let split = line.split("[[").collect::<Vec<_>>();
+        let len = split.len();
+        split.into_iter().enumerate().map(|(i,v)| {
+            let split = v.split("]]").collect::<Vec<_>>();
+            if split.len() <= 1 {
+                vec!([(v.to_owned(), underline, bold, italic, false)])
+            } else {
+                split.into_iter().enumerate().map(|(i, v)| {
+                    if i == 0 {
+                        [(v.to_owned(), underline, bold, italic, true)]
+                    } else {
+                        [(v.to_owned(), underline, bold, italic, false)]
+                    }
+                }).collect::<Vec<_>>()
+            }
+        }).flatten().flatten().collect::<Vec<(String, bool, bool, bool, bool)>>()
+    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool, bool, bool)>>();
+
+    html!(<span>{processing.into_iter().map(|(line, underline, bold, italic, note)| {
         let mut classes = "".to_owned();
         if underline {
             classes = format!("{} {}", classes, "underline");
@@ -72,6 +94,9 @@ fn format_text(text: &str) -> yew::Html {
         }
         if italic {
             classes = format!("{} {}", classes, "italic");
+        }
+        if note {
+            classes = format!("{} {}", classes, "pl-1 pr-1 bg-gray-800 text-gray-400")
         }
         html!(<span class={classes}>{line}</span>)
     }).collect::<Vec<_>>()}</span>)
@@ -113,7 +138,7 @@ fn view_title(script: &Script) -> yew::Html {
 fn view_line(line: &Line) -> yew::Html {
     match line {
         Line::Parenthetical(dialogue) => html!(<div class="flex flex-row justify-center">{format_text(&dialogue)}</div>),
-        Line::Dialogue(dialogue, _) => html!(<div class="flex flex-row justify-center">{format_text(&dialogue)}</div>),
+        Line::Dialogue(dialogue, _) => html!(<div class="flex flex-row justify-center text-center pl-20 pr-20">{format_text(&dialogue)}</div>),
         Line::Character(character) => html!(<div class="flex flex-row justify-center uppercase pt-2">{format_text(&character)}</div>),
         Line::SceneHeading(scene) => html!(<div class="flex flex-row justify-start uppercase pb-2">{format_text(&scene)}</div>),
         Line::Action(action, centered) => if *centered { html!(<div class="flex flex-row justify-center">{format_text(&action)}</div>) } else { html!(<div class="flex flex-row justify-start">{format_text(&action)}</div>) },

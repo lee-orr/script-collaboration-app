@@ -143,7 +143,7 @@ pub fn parse_line(line: &str, previous_line: &Line, current_character: &str) -> 
     } else if let Some(lyrics) = parse_lyrics(v) {
         (Line::Lyrics(lyrics, current_character.to_owned()), None)
     } else if let Some((dialogue, parenthetical)) = parse_dialog(v, &previous_line) {
-        if (parenthetical) {
+        if parenthetical {
             (Line::Parenthetical(dialogue), None)
         } else {
             (Line::Dialogue(dialogue, current_character.to_owned()), None)
