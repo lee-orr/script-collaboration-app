@@ -22,7 +22,7 @@ jobs:
       uses: jetli/trunk-action@v0.1.0
     - name: Build Frontend
       run: npm run frontend-prod
-    - run: cd  ../backend
+    - run: cd  ./backend
     - name: Build Backend
       uses: cloudflare/wrangler-action@1.3.0
       with:
