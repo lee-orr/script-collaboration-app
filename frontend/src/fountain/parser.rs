@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::types::{Line, Script, Title};
 
 pub fn parse_fountain(source: &str) -> Script {
@@ -583,8 +581,8 @@ i/e Heading 7",
     #[test]
     fn can_parse_the_boneyard() {
         let result = parse_fountain("testing /* wehawe
-        wthawet
-        wtrwat */ something");
+            wthawet
+            wtrwat */ something");
 
         assert_eq!(result.lines.len(), 3);
         if let Line::Action(line, _) = &result.lines[0] {
