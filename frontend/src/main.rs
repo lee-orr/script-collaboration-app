@@ -58,14 +58,6 @@ impl Component for App {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let changed = ctx.link().callback(|value: String| Msg::UpdateContent(value));
 
-        // let window = web_sys::window().expect("no global `window` exists");
-        // let document = window.document().expect("should have a document on window");
-
-        // let div = document.create_element("div").unwrap();
-        // div.set_inner_html(&self.content.clone());
-
-        // let display = Html::VRef(div.into());
-
         html! {
             <div class="h-screen bg-gray-600 w-full flex flex-row items-center justify-center gap-y-3">
                 <div class="h-full w-1/2 flex flex-col justify-center">

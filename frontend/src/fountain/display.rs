@@ -132,7 +132,7 @@ fn view_title(script: &Script) -> yew::Html {
         title_elements.push(html!(<div class="border-b flex-grow border-black m-2"/>))
     }
 
-    html!(<>{title_elements}</>)
+    html!(<div class="whitespace-pre">{title_elements}</div>)
 }
 
 fn view_line(line: &Line) -> yew::Html {
