@@ -46,6 +46,7 @@ fn export_lines(lines: &Vec<Line>) -> String {
             Line::SceneHeading(heading) => format!(".{}", heading),
             Line::Character(character) => character.to_uppercase(),
             Line::Dialogue(dialogue, _) => dialogue.clone(),
+            Line::Parenthetical(paren) => format!("({})", paren),
             _ => "".to_owned()
         }
 }).collect::<Vec<_>>().join("\n\n")
@@ -129,5 +130,16 @@ Author: An author", result);
         let result = export_fountain(&script);
 
         assert_eq!("some dialogue", result);
+    }
+
+    #[test]
+    fn exports_parenthetical() {
+        let script = Script {
+            title: Title::default(),
+            lines: vec![Line::Parenthetical("an aside or something".to_owned())],
+        };
+        let result = export_fountain(&script);
+
+        assert_eq!("(an aside or something)", result);
     }
 }
