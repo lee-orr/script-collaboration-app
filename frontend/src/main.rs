@@ -67,7 +67,7 @@ impl Component for App {
                 <div class="w-1/2 text-gray-100 h-full overflow-y-scroll">
                     // {display}
                     if let Some(parsed) = &self.parsed {
-                        <Display script={parsed.clone()}/>
+                        <Display script={parsed.clone()} is_editor={true}/>
                     }
                 </div>
             </div>
