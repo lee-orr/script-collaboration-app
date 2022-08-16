@@ -1,4 +1,4 @@
-use super::types::{Line, Script, Title, LineContent, TextAlignment, CharacterLine};
+use super::types::{CharacterLine, Line, LineContent, Script, TextAlignment, Title};
 
 pub fn parse_fountain(source: &str) -> Script {
     let source = parse_boneyard(source);
@@ -150,44 +150,76 @@ pub fn parse_line(
     } else if parse_page_break(v) {
         (Line::PageBreak, None)
     } else if let Some(centered) = parse_centered_text(v) {
-        (Line::Action(parse_content_formatting(&centered), TextAlignment::Center), None)
+        (
+            Line::Action(parse_content_formatting(&centered), TextAlignment::Center),
+            None,
+        )
     } else if let Some(heading) = parse_scene_heading(v) {
         (Line::SceneHeading(heading), None)
     } else if let Some(transition) = parse_transitions(v, &previous_line) {
         (Line::Transition(transition), None)
     } else if let Some((character, is_dual)) = parse_character_heading(v, &previous_line) {
-        (Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(is_dual), character.clone())]), Some(character))
+        (
+            Line::CharacterContent(vec![(
+                vec![],
+                CharacterLine::CharacterHeading(is_dual),
+                character.clone(),
+            )]),
+            Some(character),
+        )
     } else if let Some(lyrics) = parse_lyrics(v) {
-        (Line::CharacterContent(vec![(parse_content_formatting(&lyrics), CharacterLine::Lyrics, current_character.to_owned())]), None)
+        (
+            Line::CharacterContent(vec![(
+                parse_content_formatting(&lyrics),
+                CharacterLine::Lyrics,
+                current_character.to_owned(),
+            )]),
+            None,
+        )
     } else if let Some((dialogue, parenthetical)) = parse_dialog(v, &previous_line) {
         if parenthetical {
-            (Line::CharacterContent(vec![(parse_content_formatting(&dialogue), CharacterLine::Parenthetical, current_character.to_owned())]), None)
+            (
+                Line::CharacterContent(vec![(
+                    parse_content_formatting(&dialogue),
+                    CharacterLine::Parenthetical,
+                    current_character.to_owned(),
+                )]),
+                None,
+            )
         } else {
-            (Line::CharacterContent(vec![(parse_content_formatting(&dialogue), CharacterLine::Dialogue, current_character.to_owned())]), None)
+            (
+                Line::CharacterContent(vec![(
+                    parse_content_formatting(&dialogue),
+                    CharacterLine::Dialogue,
+                    current_character.to_owned(),
+                )]),
+                None,
+            )
         }
     } else {
-        (Line::Action(parse_content_formatting(&v), TextAlignment::Center), None)
+        (
+            Line::Action(parse_content_formatting(&v), TextAlignment::Left),
+            None,
+        )
     }
 }
 
 fn parse_lines(slice: &Vec<(String, bool)>) -> Vec<Line> {
     let mut previous_line = Line::Empty;
     let mut current_character = "".to_owned();
-    let iterator = slice
-        .iter()
-        .map(|(v, boneyard)| {
-            if *boneyard {
-                return Line::Boneyard(parse_content_formatting(&v));
-            }
-            let (result, character) = parse_line(&v, &previous_line, &current_character);
-            previous_line = result.clone();
-            if let Some(character) = character {
-                current_character = character;
-            }
-            result
-        });
+    let iterator = slice.iter().map(|(v, boneyard)| {
+        if *boneyard {
+            return Line::Boneyard(parse_content_formatting(&v));
+        }
+        let (result, character) = parse_line(&v, &previous_line, &current_character);
+        previous_line = result.clone();
+        if let Some(character) = character {
+            current_character = character;
+        }
+        result
+    });
 
-    let mut lines : Vec<Line> = Vec::new();
+    let mut lines: Vec<Line> = Vec::new();
 
     for line in iterator {
         collapse_line(line, &mut lines);
@@ -205,31 +237,42 @@ fn collapse_line(mut line: Line, lines: &mut Vec<Line>) {
     let mut previous_line = lines.last();
 
     match (line, previous_line) {
-        (Line::CharacterContent(mut new_line_content), Some(Line::CharacterContent(old_line_content))) => {
+        (
+            Line::CharacterContent(mut new_line_content),
+            Some(Line::CharacterContent(old_line_content)),
+        ) => {
             let last_line_conent = &old_line_content.last();
             let first_new_line_content = &new_line_content.first();
 
             match (last_line_conent, first_new_line_content) {
-                (Some((_,_,last_character)), Some((_,line_type,new_character))) => {
-                    if last_character == new_character && line_type != &CharacterLine::CharacterHeading(false) || line_type == &CharacterLine::CharacterHeading(true) {
+                (Some((_, last_line_type, last_character)), Some((_, line_type, new_character))) => {
+                    if last_character == new_character
+                        && line_type != &CharacterLine::CharacterHeading(false)
+                        && last_line_type != &CharacterLine::Empty
+                        || line_type == &CharacterLine::CharacterHeading(true)
+                    {
                         let mut collapsed_line = old_line_content.clone();
                         collapsed_line.append(&mut new_line_content);
                         lines[length] = Line::CharacterContent(collapsed_line);
                     } else {
                         lines.push(Line::CharacterContent(new_line_content))
                     }
-                },
-                _ => lines.push(Line::CharacterContent(new_line_content))
+                }
+                _ => lines.push(Line::CharacterContent(new_line_content)),
             }
-        },
+        }
         (Line::Empty, Some(Line::CharacterContent(old_line_content))) => {
             let last_line_conent = &old_line_content.last();
-                if let Some(    (_,_,last_character)) = last_line_conent {
-                let mut collapsed_line = old_line_content.clone();
-                collapsed_line.push((vec![], CharacterLine::Empty, last_character.clone()));
-                lines[length] = Line::CharacterContent(collapsed_line);
+            if let Some((_, old_line_type, last_character)) = last_line_conent {
+                if old_line_type != &CharacterLine::Empty {
+                    let mut collapsed_line = old_line_content.clone();
+                    collapsed_line.push((vec![], CharacterLine::Empty, last_character.clone()));
+                    lines[length] = Line::CharacterContent(collapsed_line);
+                } else {
+                    lines.push(Line::Empty);
+                }
             }
-        },
+        }
         (line, _) => lines.push(line),
     };
 }
@@ -259,7 +302,9 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
             } else {
                 if let Some(key) = last_key {
                     if let Some(value) = last_value {
-                        title.meta.insert(key.to_owned(), parse_content_formatting(&value));
+                        title
+                            .meta
+                            .insert(key.to_owned(), parse_content_formatting(&value));
                         match key.as_str() {
                             "Title" => title.title = Some(parse_content_formatting(&value)),
                             "Credit" => title.credit = Some(parse_content_formatting(&value)),
@@ -283,7 +328,9 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
         }
         if let Some(key) = last_key {
             if let Some(value) = last_value {
-                title.meta.insert(key.to_owned(), parse_content_formatting(&value));
+                title
+                    .meta
+                    .insert(key.to_owned(), parse_content_formatting(&value));
                 match key.as_str() {
                     "Title" => title.title = Some(parse_content_formatting(&value)),
                     "Credit" => title.credit = Some(parse_content_formatting(&value)),
@@ -304,92 +351,142 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
 }
 
 fn parse_content_formatting(text: &str) -> Vec<LineContent> {
-
     let mut process_underline = false;
-    let processing = text.replace("&nbsp;","\n").split("_").map(|v| {
-        if v.len() == 0 {
-            (v.to_owned(), false)
-        } else if v.ends_with("\\") {
-            (format!("{}_", v[0..v.len() - 1].to_owned()), process_underline)
-        } else {
-            process_underline = if process_underline { false} else { true};
-            (v.to_owned(), !process_underline)
-        }
-    }).filter(|v| v.0.len() > 0).collect::<Vec<(String, bool)>>();
+    let processing = text
+        .split("_")
+        .map(|v| {
+            if v.len() == 0 {
+                (v.to_owned(), false)
+            } else if v.ends_with("\\") {
+                (
+                    format!("{}_", v[0..v.len() - 1].to_owned()),
+                    process_underline,
+                )
+            } else {
+                process_underline = if process_underline { false } else { true };
+                (v.to_owned(), !process_underline)
+            }
+        })
+        .filter(|v| v.0.len() > 0)
+        .collect::<Vec<(String, bool)>>();
 
     let mut process_bold = false;
-    let processing = processing.into_iter().enumerate().map(|(segment,(line, underline))| {
-        let split = line.split("**").collect::<Vec<_>>();
-        let len = split.len();
-        split.into_iter().enumerate().map(|(i,v)| {
-            if i == len - 1 {
-                (v.to_owned(), underline, process_bold)
-            } else if v.len() == 0 {
-                (v.to_owned(), false, false)
-            } else if v.ends_with("\\") {
-                (format!("{}**", v[0..v.len() - 1].to_owned()), underline, process_bold)
-            } else {
-                process_bold = if process_bold { false} else { true};
-                (v.to_owned(), underline, !process_bold)
-            }
-        }).collect::<Vec<(String, bool, bool)>>()
-    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool)>>();
+    let processing = processing
+        .into_iter()
+        .enumerate()
+        .map(|(segment, (line, underline))| {
+            let split = line.split("**").collect::<Vec<_>>();
+            let len = split.len();
+            split
+                .into_iter()
+                .enumerate()
+                .map(|(i, v)| {
+                    if i == len - 1 {
+                        (v.to_owned(), underline, process_bold)
+                    } else if v.len() == 0 {
+                        (v.to_owned(), false, false)
+                    } else if v.ends_with("\\") {
+                        (
+                            format!("{}**", v[0..v.len() - 1].to_owned()),
+                            underline,
+                            process_bold,
+                        )
+                    } else {
+                        process_bold = if process_bold { false } else { true };
+                        (v.to_owned(), underline, !process_bold)
+                    }
+                })
+                .collect::<Vec<(String, bool, bool)>>()
+        })
+        .flatten()
+        .filter(|v| v.0.len() > 0)
+        .collect::<Vec<(String, bool, bool)>>();
 
     let mut process_italic = false;
-    let processing = processing.into_iter().map(|(line, underline, bold)| {
-        let split = line.split("*").collect::<Vec<_>>();
-        let len = split.len();
-        split.into_iter().enumerate().map(|(i,v)| {
-            if i == len - 1 {
-                (v.to_owned(), underline, bold, process_italic)
-            } else if v.len() == 0 {
-                (v.to_owned(), false, false, false)
-            } else if v.ends_with("\\") {
-                (format!("{}*", v[0..v.len() - 1].to_owned()), underline, bold, process_italic)
-            } else {
-                process_italic = if process_italic { false} else { true};
-                (v.to_owned(), underline, bold, !process_italic)
-            }
-        }).collect::<Vec<(String, bool, bool, bool)>>()
-    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool, bool)>>();
+    let processing = processing
+        .into_iter()
+        .map(|(line, underline, bold)| {
+            let split = line.split("*").collect::<Vec<_>>();
+            let len = split.len();
+            split
+                .into_iter()
+                .enumerate()
+                .map(|(i, v)| {
+                    if i == len - 1 {
+                        (v.to_owned(), underline, bold, process_italic)
+                    } else if v.len() == 0 {
+                        (v.to_owned(), false, false, false)
+                    } else if v.ends_with("\\") {
+                        (
+                            format!("{}*", v[0..v.len() - 1].to_owned()),
+                            underline,
+                            bold,
+                            process_italic,
+                        )
+                    } else {
+                        process_italic = if process_italic { false } else { true };
+                        (v.to_owned(), underline, bold, !process_italic)
+                    }
+                })
+                .collect::<Vec<(String, bool, bool, bool)>>()
+        })
+        .flatten()
+        .filter(|v| v.0.len() > 0)
+        .collect::<Vec<(String, bool, bool, bool)>>();
 
     let mut processing_note = false;
-    let processing = processing.into_iter().map(|(line, underline, bold, italic)| {
-        let split = line.split("[[").collect::<Vec<_>>();
-        let len = split.len();
-        split.into_iter().enumerate().map(|(i,v)| {
-            let split = v.split("]]").collect::<Vec<_>>();
-            if split.len() <= 1 {
-                vec!([(v.to_owned(), underline, bold, italic, false)])
-            } else {
-                split.into_iter().enumerate().map(|(i, v)| {
-                    if i == 0 {
-                        [(v.to_owned(), underline, bold, italic, true)]
+    let processing = processing
+        .into_iter()
+        .map(|(line, underline, bold, italic)| {
+            let split = line.split("[[").collect::<Vec<_>>();
+            let len = split.len();
+            split
+                .into_iter()
+                .enumerate()
+                .map(|(i, v)| {
+                    let split = v.split("]]").collect::<Vec<_>>();
+                    if split.len() <= 1 {
+                        vec![[(v.to_owned(), underline, bold, italic, false)]]
                     } else {
-                        [(v.to_owned(), underline, bold, italic, false)]
+                        split
+                            .into_iter()
+                            .enumerate()
+                            .map(|(i, v)| {
+                                if i == 0 {
+                                    [(v.to_owned(), underline, bold, italic, true)]
+                                } else {
+                                    [(v.to_owned(), underline, bold, italic, false)]
+                                }
+                            })
+                            .collect::<Vec<_>>()
                     }
-                }).collect::<Vec<_>>()
-            }
-        }).flatten().flatten().collect::<Vec<(String, bool, bool, bool, bool)>>()
-    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool, bool, bool)>>();
+                })
+                .flatten()
+                .flatten()
+                .collect::<Vec<(String, bool, bool, bool, bool)>>()
+        })
+        .flatten()
+        .filter(|v| v.0.len() > 0)
+        .collect::<Vec<(String, bool, bool, bool, bool)>>();
 
-    processing.into_iter().map(|(content, underline, bold, italic, note)| {
-        LineContent {
+    processing
+        .into_iter()
+        .map(|(content, underline, bold, italic, note)| LineContent {
             content,
-            underline, 
+            underline,
             bold,
             italic,
             note,
             ..Default::default()
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use crate::fountain::{
         parser::parse_fountain,
-        types::{CharacterLine, Line, TextAlignment, LineContent},
+        types::{CharacterLine, Line, LineContent, TextAlignment},
     };
 
     use super::{collapse_line, parse_content_formatting};
@@ -419,7 +516,10 @@ mod tests {
         );
         assert_eq!(result.title.credit.unwrap()[0].content, "Written by");
         assert_eq!(result.title.author.unwrap()[0].content, "Someone Special");
-        assert_eq!(result.title.meta.get("Unknown").unwrap()[0].content, "Unknown?");
+        assert_eq!(
+            result.title.meta.get("Unknown").unwrap()[0].content,
+            "Unknown?"
+        );
         assert_eq!(result.lines.len(), 2);
         if let Line::Action(line, _) = &result.lines[0] {
             assert_eq!(line[0].content, "the actual script starts here")
@@ -624,7 +724,7 @@ i/e Heading 7",
             THIS IS A CHARACTER
             testing some dialogue and shit",
         );
-        assert_eq!(result.lines.len(), 5);
+        assert_eq!(result.lines.len(), 4);
         if let Line::Action(line, _) = &result.lines[1] {
             assert_eq!(line[0].content, "THIS IS NOT A CHARACTER")
         } else {
@@ -657,7 +757,7 @@ i/e Heading 7",
             CHARACTER
             I am talking now...",
         );
-        assert_eq!(result.lines.len(), 2);
+        assert_eq!(result.lines.len(), 1);
         if let Line::CharacterContent(lines) = &result.lines[0] {
             if let (line, line_type, character) = &lines[1] {
                 assert_eq!(line[0].content, "I am talking now...");
@@ -684,7 +784,7 @@ i/e Heading 7",
             
             and an action",
         );
-        assert_eq!(result.lines.len(), 4);
+        assert_eq!(result.lines.len(), 3);
         if let Line::CharacterContent(lines) = &result.lines[0] {
             if let (line, line_type, character) = &lines[1] {
                 assert_eq!(line[0].content, "(to everyone)");
@@ -692,7 +792,8 @@ i/e Heading 7",
                 assert_eq!(line_type, &CharacterLine::Parenthetical);
             } else {
                 panic!()
-            }if let (line, line_type, character) = &lines[2] {
+            }
+            if let (line, line_type, character) = &lines[2] {
                 assert_eq!(line[0].content, "I am talking now!");
                 assert_eq!(character, "CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Dialogue);
@@ -717,7 +818,7 @@ i/e Heading 7",
             assert!(false, "didn't parse line");
         }
 
-        if let Line::Action(line, _) = &result.lines[2] {
+        if let Line::Action(line, _) = &result.lines[1] {
             assert_eq!(line[0].content, "and an action");
         } else {
             assert!(false, "didn't parse line");
@@ -827,8 +928,22 @@ i/e Heading 7",
 
     #[test]
     fn collapse_two_dialogues_by_the_same_character() {
-        let mut result = vec![Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(false), "character".to_owned())])];
-        collapse_line(Line::CharacterContent(vec![(vec![LineContent { content: "test".to_owned(), ..Default::default()}], CharacterLine::Dialogue, "character".to_owned())]),  &mut result);
+        let mut result = vec![Line::CharacterContent(vec![(
+            vec![],
+            CharacterLine::CharacterHeading(false),
+            "character".to_owned(),
+        )])];
+        collapse_line(
+            Line::CharacterContent(vec![(
+                vec![LineContent {
+                    content: "test".to_owned(),
+                    ..Default::default()
+                }],
+                CharacterLine::Dialogue,
+                "character".to_owned(),
+            )]),
+            &mut result,
+        );
 
         assert_eq!(result.len(), 1);
         if let Line::CharacterContent(line) = &result[0] {
@@ -840,8 +955,22 @@ i/e Heading 7",
 
     #[test]
     fn dont_collapse_different_character_dialogues() {
-        let mut result = vec![Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(false), "character".to_owned())])];
-        collapse_line(Line::CharacterContent(vec![(vec![LineContent { content: "test".to_owned(), ..Default::default()}], CharacterLine::Dialogue, "character 2".to_owned())]),  &mut result);
+        let mut result = vec![Line::CharacterContent(vec![(
+            vec![],
+            CharacterLine::CharacterHeading(false),
+            "character".to_owned(),
+        )])];
+        collapse_line(
+            Line::CharacterContent(vec![(
+                vec![LineContent {
+                    content: "test".to_owned(),
+                    ..Default::default()
+                }],
+                CharacterLine::Dialogue,
+                "character 2".to_owned(),
+            )]),
+            &mut result,
+        );
 
         assert_eq!(result.len(), 2);
         if let Line::CharacterContent(line) = &result[0] {
@@ -851,11 +980,21 @@ i/e Heading 7",
         }
     }
 
-
     #[test]
     fn collapse_two_dialogues_by_different_characters_if_dual_dialogue() {
-        let mut result = vec![Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(false), "character".to_owned())])];
-        collapse_line(Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(true), "character 2".to_owned())]),  &mut result);
+        let mut result = vec![Line::CharacterContent(vec![(
+            vec![],
+            CharacterLine::CharacterHeading(false),
+            "character".to_owned(),
+        )])];
+        collapse_line(
+            Line::CharacterContent(vec![(
+                vec![],
+                CharacterLine::CharacterHeading(true),
+                "character 2".to_owned(),
+            )]),
+            &mut result,
+        );
 
         assert_eq!(result.len(), 1);
         if let Line::CharacterContent(line) = &result[0] {
@@ -868,7 +1007,7 @@ i/e Heading 7",
     #[test]
     fn with_no_formatting_returns_single_unformatted_content() {
         let result = parse_content_formatting("test line");
-        
+
         assert_eq!(result.len(), 1);
 
         let content = &result[0];
@@ -883,7 +1022,7 @@ i/e Heading 7",
     #[test]
     fn parse_underline_correctly() {
         let result = parse_content_formatting("test _line_");
-        
+
         assert_eq!(result.len(), 2);
 
         let content = &result[0];
@@ -906,7 +1045,7 @@ i/e Heading 7",
     #[test]
     fn parse_bold_correctly() {
         let result = parse_content_formatting("test **line**");
-        
+
         assert_eq!(result.len(), 2);
 
         let content = &result[0];
@@ -929,7 +1068,7 @@ i/e Heading 7",
     #[test]
     fn parse_italic_correctly() {
         let result = parse_content_formatting("test *line*");
-        
+
         assert_eq!(result.len(), 2);
 
         let content = &result[0];
@@ -952,7 +1091,7 @@ i/e Heading 7",
     #[test]
     fn parse_notes_correctly() {
         let result = parse_content_formatting("test [[line]]");
-        
+
         assert_eq!(result.len(), 2);
 
         let content = &result[0];

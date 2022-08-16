@@ -24,7 +24,7 @@ fn format_text(text: &Vec<LineContent>) -> yew::Html {
         if *note {
             classes = format!("{} {}", classes, "pl-1 pr-1 bg-gray-800 text-gray-400")
         }
-        html!(<span class={classes}>{content.clone()}</span>)
+        html!(<span class={classes}>{if content == "&nbsp;" { html!(<><br/></>) } else { html!(<>{&content}</>) }}</span>)
     }).collect::<Vec<_>>()}</span>)
 }
 
