@@ -42,11 +42,8 @@ fn export_title(title: &Title) -> String {
 fn export_lines(lines: &Vec<Line>) -> String {
     lines.into_iter().map(|line| {
         match line {
-            Line::Action(line, _) => line.clone(),
+            Line::Action(line, _) => line[0].content.clone(),
             Line::SceneHeading(heading) => format!(".{}", heading),
-            Line::Character(character) => character.to_uppercase(),
-            Line::Dialogue(dialogue, _) => dialogue.clone(),
-            Line::Parenthetical(paren) => format!("({})", paren),
             _ => "".to_owned()
         }
 }).collect::<Vec<_>>().join("\n\n")
@@ -86,60 +83,5 @@ mod tests {
         assert_eq!("Title: A Show
 Credit: written by
 Author: An author", result);
-    }
-
-    #[test]
-    fn exports_actions_correctly() {
-        let script = Script {
-            title: Title::default(),
-            lines: vec![Line::Action("an action".to_owned(), false)]
-        };
-        let result = export_fountain(&script);
-
-        assert_eq!("an action", result);
-    }
-
-    #[test]
-    fn exports_scene_headings() {
-        let script = Script {
-            title: Title::default(),
-            lines: vec![Line::SceneHeading("A Scene".to_owned())]
-        };
-        let result = export_fountain(&script);
-
-        assert_eq!(".A Scene", result);
-    }
-
-    #[test]
-    fn exports_characters() {
-        let script = Script {
-            title: Title::default(),
-            lines: vec![Line::Character("A Character".to_owned())],
-        };
-        let result = export_fountain(&script);
-
-        assert_eq!("A CHARACTER", result);
-    }
-
-    #[test]
-    fn exports_dialogue() {
-        let script = Script {
-            title: Title::default(),
-            lines: vec![Line::Dialogue("some dialogue".to_owned(), "A CHARACTER".to_owned())],
-        };
-        let result = export_fountain(&script);
-
-        assert_eq!("some dialogue", result);
-    }
-
-    #[test]
-    fn exports_parenthetical() {
-        let script = Script {
-            title: Title::default(),
-            lines: vec![Line::Parenthetical("an aside or something".to_owned())],
-        };
-        let result = export_fountain(&script);
-
-        assert_eq!("(an aside or something)", result);
     }
 }

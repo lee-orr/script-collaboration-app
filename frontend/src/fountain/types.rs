@@ -3,21 +3,39 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use yew::Properties;
 
+#[derive(Clone, Serialize, Deserialize, Default, PartialEq, Eq, Debug)]
+pub struct LineContent {
+    pub content: String,
+    pub bold: bool,
+    pub italic: bool,
+    pub underline: bool,
+    pub note: bool
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub enum CharacterLine {
+    CharacterHeading,
+    Dialogue,
+    Parenthetical,
+    Lyrics
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub enum TextAlignment {
+    Left,
+    Center
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum Line {
-    Action(String, bool),
+    Action(Vec<LineContent>, TextAlignment),
     SceneHeading(String),
-    Character(String),
-    Dialogue(String, String),
-    Parenthetical(String),
-    DualDialogue(Vec<(String, String)>),
-    Lyrics(String, String),
+    CharacterContent(Vec<(Vec<LineContent>, CharacterLine, String)>),
     Transition(String),
     PageBreak,
-    Note(String),
-    Boneyard(String),
+    Boneyard(Vec<LineContent>),
     Section(String),
-    Synopsis(String),
+    Synopsis(Vec<LineContent>),
     Empty,
 }
 

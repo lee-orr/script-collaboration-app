@@ -1,6 +1,6 @@
 use yew::{Properties, Component, html};
 
-use super::types::{Script, Line};
+use super::types::{Script, Line, TextAlignment};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct DisplayProps {
@@ -137,15 +137,15 @@ fn view_title(script: &Script) -> yew::Html {
 
 fn view_line(line: &Line) -> yew::Html {
     match line {
-        Line::Parenthetical(dialogue) => html!(<div class="flex flex-row justify-center">{format_text(&dialogue)}</div>),
-        Line::Dialogue(dialogue, _) => html!(<div class="flex flex-row justify-center text-center pl-20 pr-20">{format_text(&dialogue)}</div>),
-        Line::Character(character) => html!(<div class="flex flex-row justify-center uppercase pt-2">{format_text(&character)}</div>),
+        // Line::Parenthetical(dialogue) => html!(<div class="flex flex-row justify-center">{format_text(&dialogue)}</div>),
+        // Line::Dialogue(dialogue, _) => html!(<div class="flex flex-row justify-center text-center pl-20 pr-20">{format_text(&dialogue)}</div>),
+        // Line::Character(character) => html!(<div class="flex flex-row justify-center uppercase pt-2">{format_text(&character)}</div>),
         Line::SceneHeading(scene) => html!(<div class="flex flex-row justify-start uppercase pb-2">{format_text(&scene)}</div>),
-        Line::Action(action, centered) => if *centered { html!(<div class="flex flex-row justify-center">{format_text(&action)}</div>) } else { html!(<div class="flex flex-row justify-start">{format_text(&action)}</div>) },
-        Line::Lyrics(lyric, _) => html!(<div class="flex flex-row justify-center italic"><div class="text-start w-1/2">{format_text(&lyric)}</div></div>),
+        // Line::Action(action, centered) => if *centered == TextAlignment::Center { html!(<div class="flex flex-row justify-center">{format_text(&action)}</div>) } else { html!(<div class="flex flex-row justify-start">{format_text(&action)}</div>) },
+        // Line::Lyrics(lyric, _) => html!(<div class="flex flex-row justify-center italic"><div class="text-start w-1/2">{format_text(&lyric)}</div></div>),
         Line::Transition(transition) => html!(<div class="flex flex-row justify-end uppercase pb-2 pt-2 pr-5 pl-5">{format_text(&transition)}</div>),
         Line::PageBreak => html!(<div class="border-b flex-grow border-black m-2"/>),
-        Line::Boneyard(boneyard) => html!(<div class="flex flex-row justify-right text-gray-400 border-gray-300 m-2 p-2 bg-gray-800">{boneyard}</div>),
+        // Line::Boneyard(boneyard) => html!(<div class="flex flex-row justify-right text-gray-400 border-gray-300 m-2 p-2 bg-gray-800">{boneyard}</div>),
         Line::Empty => html!(<br/>),
         _ => html!(<>{"a"}</>)
     }
