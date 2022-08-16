@@ -73,9 +73,16 @@ fn parse_scene_heading(line: &str) -> Option<String> {
     }
 }
 
-fn parse_character_heading(line: &str, previous_line: &Line) -> Option<String> {
+fn parse_character_heading(line: &str, previous_line: &Line) -> Option<(String, bool)> {
+    let mut line = line.to_owned();
+    let mut is_dual = false;
+    if line.ends_with('^') {
+        line.pop();
+        line = line.trim().to_owned();
+        is_dual = true;
+    }
     if matches!(previous_line, Line::Empty) && line.to_uppercase() == line {
-        Some(line.to_owned())
+        Some((line.to_owned(), is_dual))
     } else {
         None
     }
@@ -148,8 +155,8 @@ pub fn parse_line(
         (Line::SceneHeading(heading), None)
     } else if let Some(transition) = parse_transitions(v, &previous_line) {
         (Line::Transition(transition), None)
-    } else if let Some(character) = parse_character_heading(v, &previous_line) {
-        (Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading, character.clone())]), Some(character))
+    } else if let Some((character, is_dual)) = parse_character_heading(v, &previous_line) {
+        (Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(is_dual), character.clone())]), Some(character))
     } else if let Some(lyrics) = parse_lyrics(v) {
         (Line::CharacterContent(vec![(vec![LineContent{content: lyrics, ..Default::default()}], CharacterLine::Lyrics, current_character.to_owned())]), None)
     } else if let Some((dialogue, parenthetical)) = parse_dialog(v, &previous_line) {
@@ -166,7 +173,7 @@ pub fn parse_line(
 fn parse_lines(slice: &Vec<(String, bool)>) -> Vec<Line> {
     let mut previous_line = Line::Empty;
     let mut current_character = "".to_owned();
-    slice
+    let iterator = slice
         .iter()
         .map(|(v, boneyard)| {
             if *boneyard {
@@ -178,8 +185,45 @@ fn parse_lines(slice: &Vec<(String, bool)>) -> Vec<Line> {
                 current_character = character;
             }
             result
-        })
-        .collect::<Vec<Line>>()
+        });
+
+    let mut lines : Vec<Line> = Vec::new();
+
+    for line in iterator {
+        collapse_line(line, &mut lines);
+    }
+
+    lines
+}
+
+fn collapse_line(mut line: Line, lines: &mut Vec<Line>) {
+    if lines.len() == 0 {
+        lines.push(line);
+        return;
+    }
+    let length = lines.len() - 1;
+    let mut previous_line = lines.last();
+
+    match (line, previous_line) {
+        (Line::CharacterContent(mut new_line_content), Some(Line::CharacterContent(old_line_content))) => {
+            let last_line_conent = &old_line_content.last();
+            let first_new_line_content = &new_line_content.first();
+
+            match (last_line_conent, first_new_line_content) {
+                (Some((_,_,last_character)), Some((_,line_type,new_character))) => {
+                    if last_character == new_character || line_type == &CharacterLine::CharacterHeading(true) {
+                        let mut collapsed_line = old_line_content.clone();
+                        collapsed_line.append(&mut new_line_content);
+                        lines[length] = Line::CharacterContent(collapsed_line);
+                    } else {
+                        lines.push(Line::CharacterContent(new_line_content))
+                    }
+                },
+                _ => lines.push(Line::CharacterContent(new_line_content))
+            }
+        },
+        (line, _) => lines.push(line),
+    };
 }
 
 fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
@@ -255,8 +299,10 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
 mod tests {
     use crate::fountain::{
         parser::parse_fountain,
-        types::{CharacterLine, Line, TextAlignment},
+        types::{CharacterLine, Line, TextAlignment, LineContent},
     };
+
+    use super::collapse_line;
 
     #[test]
     fn empty_string_returns_empty_document() {
@@ -418,7 +464,7 @@ i/e Heading 7",
             THIS IS A CHARACTER
             testing some dialogue and shit",
         );
-        assert_eq!(result.lines.len(), 5);
+        assert_eq!(result.lines.len(), 4);
         if let Line::Action(line, _) = &result.lines[1] {
             assert_eq!(line[0].content, "THIS IS NOT A CHARACTER")
         } else {
@@ -427,15 +473,45 @@ i/e Heading 7",
         if let Line::CharacterContent(lines) = &result.lines[3] {
             if let (line, line_type, character) = &lines[0] {
                 assert_eq!(character, "THIS IS A CHARACTER");
-                assert_eq!(line_type, &CharacterLine::CharacterHeading);
+                assert_eq!(line_type, &CharacterLine::CharacterHeading(false));
+            } else {
+                panic!()
+            }
+            if let (line, line_type, character) = &lines[1] {
+                assert_eq!(line[0].content, "testing some dialogue and shit");
+                assert_eq!(character, "THIS IS A CHARACTER");
+                assert_eq!(line_type, &CharacterLine::Dialogue);
             } else {
                 panic!()
             }
         } else {
             assert!(false, "didn't parse line")
         }
-        if let Line::CharacterContent(lines) = &result.lines[4] {
+    }
+
+    #[test]
+    fn correctly_parses_character_names_with_dual() {
+        let result = parse_fountain(
+            "some scene setting
+            THIS IS NOT A CHARACTER
+            
+            THIS IS A CHARACTER ^
+            testing some dialogue and shit",
+        );
+        assert_eq!(result.lines.len(), 4);
+        if let Line::Action(line, _) = &result.lines[1] {
+            assert_eq!(line[0].content, "THIS IS NOT A CHARACTER")
+        } else {
+            assert!(false, "didn't parse line")
+        }
+        if let Line::CharacterContent(lines) = &result.lines[3] {
             if let (line, line_type, character) = &lines[0] {
+                assert_eq!(character, "THIS IS A CHARACTER");
+                assert_eq!(line_type, &CharacterLine::CharacterHeading(true));
+            } else {
+                panic!()
+            }
+            if let (line, line_type, character) = &lines[1] {
                 assert_eq!(line[0].content, "testing some dialogue and shit");
                 assert_eq!(character, "THIS IS A CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Dialogue);
@@ -458,7 +534,7 @@ i/e Heading 7",
             THIS IS A CHARACTER
             testing some dialogue and shit",
         );
-        assert_eq!(result.lines.len(), 6);
+        assert_eq!(result.lines.len(), 5);
         if let Line::Action(line, _) = &result.lines[1] {
             assert_eq!(line[0].content, "THIS IS NOT A CHARACTER")
         } else {
@@ -467,15 +543,11 @@ i/e Heading 7",
         if let Line::CharacterContent(lines) = &result.lines[3] {
             if let (line, line_type, character) = &lines[0] {
                 assert_eq!(character, "THIS IS A CHARACTER");
-                assert_eq!(line_type, &CharacterLine::CharacterHeading);
+                assert_eq!(line_type, &CharacterLine::CharacterHeading(false));
             } else {
                 panic!()
             }
-        } else {
-            assert!(false, "didn't parse line")
-        }
-        if let Line::CharacterContent(lines) = &result.lines[4] {
-            if let (line, line_type, character) = &lines[0] {
+            if let (line, line_type, character) = &lines[1] {
                 assert_eq!(line[0].content, "testing some dialogue and shit");
                 assert_eq!(character, "THIS IS A CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Dialogue);
@@ -495,9 +567,9 @@ i/e Heading 7",
             CHARACTER
             I am talking now...",
         );
-        assert_eq!(result.lines.len(), 3);
-        if let Line::CharacterContent(lines) = &result.lines[1] {
-            if let (line, line_type, character) = &lines[0] {
+        assert_eq!(result.lines.len(), 2);
+        if let Line::CharacterContent(lines) = &result.lines[0] {
+            if let (line, line_type, character) = &lines[1] {
                 assert_eq!(line[0].content, "I am talking now...");
                 assert_eq!(character, "CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Dialogue);
@@ -522,42 +594,29 @@ i/e Heading 7",
             
             and an action",
         );
-        assert_eq!(result.lines.len(), 8);
-        if let Line::CharacterContent(lines) = &result.lines[1] {
-            if let (line, line_type, character) = &lines[0] {
+        assert_eq!(result.lines.len(), 4);
+        if let Line::CharacterContent(lines) = &result.lines[0] {
+            if let (line, line_type, character) = &lines[1] {
                 assert_eq!(line[0].content, "(to everyone)");
                 assert_eq!(character, "CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Parenthetical);
             } else {
                 panic!()
-            }
-        } else {
-            assert!(false, "didn't parse line");
-        }
-        if let Line::CharacterContent(lines) = &result.lines[2] {
-            if let (line, line_type, character) = &lines[0] {
+            }if let (line, line_type, character) = &lines[2] {
                 assert_eq!(line[0].content, "I am talking now!");
                 assert_eq!(character, "CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Dialogue);
             } else {
                 panic!()
             }
-        } else {
-            assert!(false, "didn't parse line");
-        }
-        if let Line::CharacterContent(lines) = &result.lines[3] {
-            if let (line, line_type, character) = &lines[0] {
+            if let (line, line_type, character) = &lines[3] {
                 assert_eq!(line[0].content, "(aside)");
                 assert_eq!(character, "CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Parenthetical);
             } else {
                 panic!()
             }
-        } else {
-            assert!(false, "didn't parse line");
-        }
-        if let Line::CharacterContent(lines) = &result.lines[4] {
-            if let (line, line_type, character) = &lines[0] {
+            if let (line, line_type, character) = &lines[4] {
                 assert_eq!(line[0].content, "I think...");
                 assert_eq!(character, "CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Dialogue);
@@ -568,7 +627,7 @@ i/e Heading 7",
             assert!(false, "didn't parse line");
         }
 
-        if let Line::Action(line, _) = &result.lines[6] {
+        if let Line::Action(line, _) = &result.lines[2] {
             assert_eq!(line[0].content, "and an action");
         } else {
             assert!(false, "didn't parse line");
@@ -581,9 +640,9 @@ i/e Heading 7",
             "CHARACTER
         ~ part of a song",
         );
-        assert_eq!(result.lines.len(), 2);
-        if let Line::CharacterContent(lines) = &result.lines[1] {
-            if let (line, line_type, character) = &lines[0] {
+        assert_eq!(result.lines.len(), 1);
+        if let Line::CharacterContent(lines) = &result.lines[0] {
+            if let (line, line_type, character) = &lines[1] {
                 assert_eq!(line[0].content, "part of a song");
                 assert_eq!(character, "CHARACTER");
                 assert_eq!(line_type, &CharacterLine::Lyrics);
@@ -673,6 +732,46 @@ i/e Heading 7",
             );
         } else {
             assert!(false, "didn't parse line");
+        }
+    }
+
+    #[test]
+    fn collapse_two_dialogues_by_the_same_character() {
+        let mut result = vec![Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(false), "character".to_owned())])];
+        collapse_line(Line::CharacterContent(vec![(vec![LineContent { content: "test".to_owned(), ..Default::default()}], CharacterLine::Dialogue, "character".to_owned())]),  &mut result);
+
+        assert_eq!(result.len(), 1);
+        if let Line::CharacterContent(line) = &result[0] {
+            assert_eq!(line.len(), 2);
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn dont_collapse_different_character_dialogues() {
+        let mut result = vec![Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(false), "character".to_owned())])];
+        collapse_line(Line::CharacterContent(vec![(vec![LineContent { content: "test".to_owned(), ..Default::default()}], CharacterLine::Dialogue, "character 2".to_owned())]),  &mut result);
+
+        assert_eq!(result.len(), 2);
+        if let Line::CharacterContent(line) = &result[0] {
+            assert_eq!(line.len(), 1);
+        } else {
+            panic!();
+        }
+    }
+
+
+    #[test]
+    fn collapse_two_dialogues_by_different_characters_if_dual_dialogue() {
+        let mut result = vec![Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(false), "character".to_owned())])];
+        collapse_line(Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(true), "character 2".to_owned())]),  &mut result);
+
+        assert_eq!(result.len(), 1);
+        if let Line::CharacterContent(line) = &result[0] {
+            assert_eq!(line.len(), 2);
+        } else {
+            panic!();
         }
     }
 }

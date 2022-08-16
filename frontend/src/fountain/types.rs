@@ -14,7 +14,7 @@ pub struct LineContent {
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum CharacterLine {
-    CharacterHeading,
+    CharacterHeading(bool),
     Dialogue,
     Parenthetical,
     Lyrics
