@@ -7,6 +7,7 @@ use fountain::display::Display;
 use yew::html::Scope;
 use yew::prelude::*;
 use crate::editor::Editor;
+use crate::fountain::types::LineContent;
 
 mod data;
 pub mod fountain;
@@ -31,10 +32,10 @@ impl Component for App {
         let parsed = parse_fountain(&content);
         let title = if let Some(title) = &parsed.title.title {
             title.to_owned()
-        } else { format!("A Title")};
+        } else { vec![LineContent { content: format!("A Title"), ..Default::default()}] };
         Self {
             content: content.to_owned(),
-            title: title,
+            title: title.into_iter().map(|c| c.content.to_owned()).collect::<Vec<String>>().join(""),
             parsed: Some(parsed)
         }
     }
@@ -46,7 +47,7 @@ impl Component for App {
             Msg::UpdateContent(content) => {
                 let parsed = parse_fountain(&content);
                 if let Some(title) = &parsed.title.title {
-                    self.title = title.to_owned();
+                    self.title = title.into_iter().map(|c| c.content.to_owned()).collect::<Vec<String>>().join("");
                 }
                 self.parsed = Some(parsed);
                 self.content = content;

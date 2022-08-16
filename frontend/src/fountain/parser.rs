@@ -150,7 +150,7 @@ pub fn parse_line(
     } else if parse_page_break(v) {
         (Line::PageBreak, None)
     } else if let Some(centered) = parse_centered_text(v) {
-        (Line::Action(vec![LineContent{content: centered, ..Default::default()}], TextAlignment::Center), None)
+        (Line::Action(parse_content_formatting(&centered), TextAlignment::Center), None)
     } else if let Some(heading) = parse_scene_heading(v) {
         (Line::SceneHeading(heading), None)
     } else if let Some(transition) = parse_transitions(v, &previous_line) {
@@ -158,15 +158,15 @@ pub fn parse_line(
     } else if let Some((character, is_dual)) = parse_character_heading(v, &previous_line) {
         (Line::CharacterContent(vec![(vec![], CharacterLine::CharacterHeading(is_dual), character.clone())]), Some(character))
     } else if let Some(lyrics) = parse_lyrics(v) {
-        (Line::CharacterContent(vec![(vec![LineContent{content: lyrics, ..Default::default()}], CharacterLine::Lyrics, current_character.to_owned())]), None)
+        (Line::CharacterContent(vec![(parse_content_formatting(&lyrics), CharacterLine::Lyrics, current_character.to_owned())]), None)
     } else if let Some((dialogue, parenthetical)) = parse_dialog(v, &previous_line) {
         if parenthetical {
-            (Line::CharacterContent(vec![(vec![LineContent{content: dialogue, ..Default::default()}], CharacterLine::Parenthetical, current_character.to_owned())]), None)
+            (Line::CharacterContent(vec![(parse_content_formatting(&dialogue), CharacterLine::Parenthetical, current_character.to_owned())]), None)
         } else {
-            (Line::CharacterContent(vec![(vec![LineContent{content: dialogue, ..Default::default()}], CharacterLine::Dialogue, current_character.to_owned())]), None)
+            (Line::CharacterContent(vec![(parse_content_formatting(&dialogue), CharacterLine::Dialogue, current_character.to_owned())]), None)
         }
     } else {
-        (Line::Action(vec![LineContent{content: v.to_owned(), ..Default::default()}], TextAlignment::Center), None)
+        (Line::Action(parse_content_formatting(&v), TextAlignment::Center), None)
     }
 }
 
@@ -177,9 +177,9 @@ fn parse_lines(slice: &Vec<(String, bool)>) -> Vec<Line> {
         .iter()
         .map(|(v, boneyard)| {
             if *boneyard {
-                return Line::Boneyard(vec![LineContent{content: v.to_owned(), ..Default::default()}]);
+                return Line::Boneyard(parse_content_formatting(&v));
             }
-            let (result, character) = parse_line(v, &previous_line, &current_character);
+            let (result, character) = parse_line(&v, &previous_line, &current_character);
             previous_line = result.clone();
             if let Some(character) = character {
                 current_character = character;
@@ -251,14 +251,14 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
             } else {
                 if let Some(key) = last_key {
                     if let Some(value) = last_value {
-                        title.meta.insert(key.to_owned(), value.to_owned());
+                        title.meta.insert(key.to_owned(), parse_content_formatting(&value));
                         match key.as_str() {
-                            "Title" => title.title = Some(value),
-                            "Credit" => title.credit = Some(value),
-                            "Author" => title.author = Some(value),
-                            "Source" => title.source = Some(value),
-                            "Draft date" => title.draft = Some(value),
-                            "Contact" => title.contact = Some(value),
+                            "Title" => title.title = Some(parse_content_formatting(&value)),
+                            "Credit" => title.credit = Some(parse_content_formatting(&value)),
+                            "Author" => title.author = Some(parse_content_formatting(&value)),
+                            "Source" => title.source = Some(parse_content_formatting(&value)),
+                            "Draft date" => title.draft = Some(parse_content_formatting(&value)),
+                            "Contact" => title.contact = Some(parse_content_formatting(&value)),
                             _ => {
                                 println!("Adding Unknown Key {} {}", &key, &value);
                             }
@@ -275,14 +275,14 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
         }
         if let Some(key) = last_key {
             if let Some(value) = last_value {
-                title.meta.insert(key.to_owned(), value.to_owned());
+                title.meta.insert(key.to_owned(), parse_content_formatting(&value));
                 match key.as_str() {
-                    "Title" => title.title = Some(value),
-                    "Credit" => title.credit = Some(value),
-                    "Author" => title.author = Some(value),
-                    "Source" => title.source = Some(value),
-                    "Draft date" => title.draft = Some(value),
-                    "Contact" => title.contact = Some(value),
+                    "Title" => title.title = Some(parse_content_formatting(&value)),
+                    "Credit" => title.credit = Some(parse_content_formatting(&value)),
+                    "Author" => title.author = Some(parse_content_formatting(&value)),
+                    "Source" => title.source = Some(parse_content_formatting(&value)),
+                    "Draft date" => title.draft = Some(parse_content_formatting(&value)),
+                    "Contact" => title.contact = Some(parse_content_formatting(&value)),
                     _ => {
                         println!("Adding Unknown Key {} {}", &key, &value);
                     }
@@ -295,6 +295,88 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
     }
 }
 
+fn parse_content_formatting(text: &str) -> Vec<LineContent> {
+
+    let mut process_underline = false;
+    let processing = text.replace("&nbsp;","\n").split("_").map(|v| {
+        if v.len() == 0 {
+            (v.to_owned(), false)
+        } else if v.ends_with("\\") {
+            (format!("{}_", v[0..v.len() - 1].to_owned()), process_underline)
+        } else {
+            process_underline = if process_underline { false} else { true};
+            (v.to_owned(), !process_underline)
+        }
+    }).filter(|v| v.0.len() > 0).collect::<Vec<(String, bool)>>();
+
+    let mut process_bold = false;
+    let processing = processing.into_iter().enumerate().map(|(segment,(line, underline))| {
+        let split = line.split("**").collect::<Vec<_>>();
+        let len = split.len();
+        split.into_iter().enumerate().map(|(i,v)| {
+            if i == len - 1 {
+                (v.to_owned(), underline, process_bold)
+            } else if v.len() == 0 {
+                (v.to_owned(), false, false)
+            } else if v.ends_with("\\") {
+                (format!("{}**", v[0..v.len() - 1].to_owned()), underline, process_bold)
+            } else {
+                process_bold = if process_bold { false} else { true};
+                (v.to_owned(), underline, !process_bold)
+            }
+        }).collect::<Vec<(String, bool, bool)>>()
+    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool)>>();
+
+    let mut process_italic = false;
+    let processing = processing.into_iter().map(|(line, underline, bold)| {
+        let split = line.split("*").collect::<Vec<_>>();
+        let len = split.len();
+        split.into_iter().enumerate().map(|(i,v)| {
+            if i == len - 1 {
+                (v.to_owned(), underline, bold, process_italic)
+            } else if v.len() == 0 {
+                (v.to_owned(), false, false, false)
+            } else if v.ends_with("\\") {
+                (format!("{}*", v[0..v.len() - 1].to_owned()), underline, bold, process_italic)
+            } else {
+                process_italic = if process_italic { false} else { true};
+                (v.to_owned(), underline, bold, !process_italic)
+            }
+        }).collect::<Vec<(String, bool, bool, bool)>>()
+    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool, bool)>>();
+
+    let mut processing_note = false;
+    let processing = processing.into_iter().map(|(line, underline, bold, italic)| {
+        let split = line.split("[[").collect::<Vec<_>>();
+        let len = split.len();
+        split.into_iter().enumerate().map(|(i,v)| {
+            let split = v.split("]]").collect::<Vec<_>>();
+            if split.len() <= 1 {
+                vec!([(v.to_owned(), underline, bold, italic, false)])
+            } else {
+                split.into_iter().enumerate().map(|(i, v)| {
+                    if i == 0 {
+                        [(v.to_owned(), underline, bold, italic, true)]
+                    } else {
+                        [(v.to_owned(), underline, bold, italic, false)]
+                    }
+                }).collect::<Vec<_>>()
+            }
+        }).flatten().flatten().collect::<Vec<(String, bool, bool, bool, bool)>>()
+    }).flatten().filter(|v| v.0.len() > 0).collect::<Vec<(String, bool, bool, bool, bool)>>();
+
+    processing.into_iter().map(|(content, underline, bold, italic, note)| {
+        LineContent {
+            content,
+            underline, 
+            bold,
+            italic,
+            note,
+            ..Default::default()
+        }
+    }).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::fountain::{
@@ -302,7 +384,7 @@ mod tests {
         types::{CharacterLine, Line, TextAlignment, LineContent},
     };
 
-    use super::collapse_line;
+    use super::{collapse_line, parse_content_formatting};
 
     #[test]
     fn empty_string_returns_empty_document() {
@@ -314,8 +396,8 @@ mod tests {
     #[test]
     fn when_there_is_title_info_it_is_parsed_first() {
         let result = parse_fountain(
-            "Title: _**test me**_
-        *something more*
+            "Title: test me
+        something more
         Credit: Written by
         Author: Someone Special
         Unknown: Unknown?
@@ -324,12 +406,12 @@ mod tests {
         );
 
         assert_eq!(
-            result.title.title.unwrap(),
-            "_**test me**_\n*something more*"
+            result.title.title.unwrap()[0].content,
+            "test me\nsomething more"
         );
-        assert_eq!(result.title.credit.unwrap(), "Written by");
-        assert_eq!(result.title.author.unwrap(), "Someone Special");
-        assert_eq!(result.title.meta.get("Unknown").unwrap(), "Unknown?");
+        assert_eq!(result.title.credit.unwrap()[0].content, "Written by");
+        assert_eq!(result.title.author.unwrap()[0].content, "Someone Special");
+        assert_eq!(result.title.meta.get("Unknown").unwrap()[0].content, "Unknown?");
         assert_eq!(result.lines.len(), 2);
         if let Line::Action(line, _) = &result.lines[0] {
             assert_eq!(line[0].content, "the actual script starts here")
@@ -773,5 +855,112 @@ i/e Heading 7",
         } else {
             panic!();
         }
+    }
+
+    #[test]
+    fn with_no_formatting_returns_single_unformatted_content() {
+        let result = parse_content_formatting("test line");
+        
+        assert_eq!(result.len(), 1);
+
+        let content = &result[0];
+
+        assert_eq!(content.content, "test line");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, false);
+    }
+
+    #[test]
+    fn parse_underline_correctly() {
+        let result = parse_content_formatting("test _line_");
+        
+        assert_eq!(result.len(), 2);
+
+        let content = &result[0];
+
+        assert_eq!(content.content, "test ");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, false);
+
+        let content = &result[1];
+
+        assert_eq!(content.content, "line");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, true);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, false);
+    }
+
+    #[test]
+    fn parse_bold_correctly() {
+        let result = parse_content_formatting("test **line**");
+        
+        assert_eq!(result.len(), 2);
+
+        let content = &result[0];
+
+        assert_eq!(content.content, "test ");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, false);
+
+        let content = &result[1];
+
+        assert_eq!(content.content, "line");
+        assert_eq!(content.bold, true);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, false);
+    }
+
+    #[test]
+    fn parse_italic_correctly() {
+        let result = parse_content_formatting("test *line*");
+        
+        assert_eq!(result.len(), 2);
+
+        let content = &result[0];
+
+        assert_eq!(content.content, "test ");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, false);
+
+        let content = &result[1];
+
+        assert_eq!(content.content, "line");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, true);
+        assert_eq!(content.note, false);
+    }
+
+    #[test]
+    fn parse_notes_correctly() {
+        let result = parse_content_formatting("test [[line]]");
+        
+        assert_eq!(result.len(), 2);
+
+        let content = &result[0];
+
+        assert_eq!(content.content, "test ");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, false);
+
+        let content = &result[1];
+
+        assert_eq!(content.content, "line");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, true);
     }
 }

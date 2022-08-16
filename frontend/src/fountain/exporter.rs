@@ -1,4 +1,6 @@
-use super::types::{Script, Title, Line};
+use serde::de::IntoDeserializer;
+
+use super::types::{Script, Title, Line, LineContent};
 
 pub fn export_fountain(source: &Script) -> String {
     let title = export_title(&source.title);
@@ -9,31 +11,38 @@ pub fn export_fountain(source: &Script) -> String {
     result.join("\n")
 }
 
+fn export_text_content(content: &Vec<LineContent>) -> String {
+    content
+        .into_iter()
+        .map(|content| content.content.to_owned())
+        .collect::<Vec<String>>().join("")
+}
+
 fn export_title(title: &Title) -> String {
     let mut result : Vec<String> = Vec::new();
 
     if let Some(title) = &title.title {
-        result.push(format!("Title: {}", title));
+        result.push(format!("Title: {}", export_text_content(title)));
     }
 
     if let Some(credit) = &title.credit {
-        result.push(format!("Credit: {}", credit));
+        result.push(format!("Credit: {}", export_text_content(credit)));
     }
 
     if let Some(author) = &title.author {
-        result.push(format!("Author: {}", author));
+        result.push(format!("Author: {}", export_text_content(author)));
     }
 
     if let Some(source) = &title.source {
-        result.push(format!("Source: {}", source));
+        result.push(format!("Source: {}", export_text_content(source)));
     }
 
     if let Some(draft) = &title.draft {
-        result.push(format!("Draft: {}", draft));
+        result.push(format!("Draft: {}", export_text_content(draft)));
     }
 
     if let Some(contact) = &title.contact {
-        result.push(format!("Contact: {}", contact));
+        result.push(format!("Contact: {}", export_text_content(contact)));
     }
 
     result.join("\n")
@@ -51,7 +60,7 @@ fn export_lines(lines: &Vec<Line>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::fountain::types::{Script, Title, Line};
+    use crate::fountain::types::{Script, Title, Line, LineContent};
     use super::export_fountain;
 
     #[test]
@@ -70,9 +79,9 @@ mod tests {
     fn when_there_is_a_title_it_is_added_to_the_script() {
         let script = Script {
             title: Title {
-                title: Some("A Show".to_owned()),
-                credit: Some("written by".to_owned()),
-                author: Some("An author".to_owned()),
+                title: Some(vec![LineContent {content: "A Show".to_owned(), ..Default::default()}]),
+                credit: Some(vec![LineContent {content: "written by".to_owned(), ..Default::default()}]),
+                author: Some(vec![LineContent {content: "An author".to_owned(), ..Default::default()}]),
                 ..Default::default()
             },
             lines: vec![]

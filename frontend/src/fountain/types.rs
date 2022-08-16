@@ -41,13 +41,13 @@ pub enum Line {
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default, PartialEq, Eq)]
 pub struct Title {
-    pub title: Option<String>,
-    pub credit: Option<String>,
-    pub author: Option<String>,
-    pub source: Option<String>,
-    pub draft: Option<String>,
-    pub contact: Option<String>,
-    pub meta: HashMap<String, String>,
+    pub title: Option<Vec<LineContent>>,
+    pub credit: Option<Vec<LineContent>>,
+    pub author: Option<Vec<LineContent>>,
+    pub source: Option<Vec<LineContent>>,
+    pub draft: Option<Vec<LineContent>>,
+    pub contact: Option<Vec<LineContent>>,
+    pub meta: HashMap<String, Vec<LineContent>>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Properties)]
