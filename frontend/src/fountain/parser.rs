@@ -211,7 +211,7 @@ fn collapse_line(mut line: Line, lines: &mut Vec<Line>) {
 
             match (last_line_conent, first_new_line_content) {
                 (Some((_,_,last_character)), Some((_,line_type,new_character))) => {
-                    if last_character == new_character || line_type == &CharacterLine::CharacterHeading(true) {
+                    if last_character == new_character && line_type != &CharacterLine::CharacterHeading(false) || line_type == &CharacterLine::CharacterHeading(true) {
                         let mut collapsed_line = old_line_content.clone();
                         collapsed_line.append(&mut new_line_content);
                         lines[length] = Line::CharacterContent(collapsed_line);
@@ -220,6 +220,14 @@ fn collapse_line(mut line: Line, lines: &mut Vec<Line>) {
                     }
                 },
                 _ => lines.push(Line::CharacterContent(new_line_content))
+            }
+        },
+        (Line::Empty, Some(Line::CharacterContent(old_line_content))) => {
+            let last_line_conent = &old_line_content.last();
+                if let Some(    (_,_,last_character)) = last_line_conent {
+                let mut collapsed_line = old_line_content.clone();
+                collapsed_line.push((vec![], CharacterLine::Empty, last_character.clone()));
+                lines[length] = Line::CharacterContent(collapsed_line);
             }
         },
         (line, _) => lines.push(line),

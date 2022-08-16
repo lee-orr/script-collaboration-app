@@ -17,7 +17,8 @@ pub enum CharacterLine {
     CharacterHeading(bool),
     Dialogue,
     Parenthetical,
-    Lyrics
+    Lyrics,
+    Empty
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
