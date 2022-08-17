@@ -50,7 +50,7 @@ fn parse_boneyard(source: &str) -> Vec<(String, bool)> {
         .flatten()
         .map(|v| {
             boneyard = !boneyard;
-            (v.to_owned(), !boneyard)
+            ((if boneyard { v } else { v.trim() }).to_owned(), !boneyard)
         })
         .collect::<Vec<(String, bool)>>()
 }
@@ -260,7 +260,7 @@ fn collapse_line(mut line: Line, lines: &mut Vec<Line>) {
                 }
                 _ => lines.push(Line::CharacterContent(new_line_content)),
             }
-        }
+        },
         (Line::Empty, Some(Line::CharacterContent(old_line_content))) => {
             let last_line_conent = &old_line_content.last();
             if let Some((_, old_line_type, last_character)) = last_line_conent {
@@ -272,7 +272,16 @@ fn collapse_line(mut line: Line, lines: &mut Vec<Line>) {
                     lines.push(Line::Empty);
                 }
             }
-        }
+        },
+        (Line::Empty, Some(Line::Empty)) => {},
+        (Line::CharacterContent(old_line_content), Some(Line::Empty)) => {
+            let last_line_content = &old_line_content.last();
+            if let Some((_, old_line_type, _)) = last_line_content {
+                if old_line_type != &CharacterLine::Empty {
+                    lines.push(Line::CharacterContent(old_line_content));
+                }
+            }
+        },
         (line, _) => lines.push(line),
     };
 }
@@ -302,6 +311,7 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
             } else {
                 if let Some(key) = last_key {
                     if let Some(value) = last_value {
+                        let value = value.trim();
                         title
                             .meta
                             .insert(key.to_owned(), parse_content_formatting(&value));
@@ -328,6 +338,7 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
         }
         if let Some(key) = last_key {
             if let Some(value) = last_value {
+                let value = value.trim();
                 title
                     .meta
                     .insert(key.to_owned(), parse_content_formatting(&value));
