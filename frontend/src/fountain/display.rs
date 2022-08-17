@@ -389,7 +389,7 @@ impl Component for Display {
         });
 
         html!(
-            <div key={self.version} contenteditable={if is_editor {"true"} else {"false"}} oninput={onchange}>
+            <div contenteditable={if is_editor {"true"} else {"false"}} oninput={onchange}>
                 {view_title(&script, is_editor, display_notes)}
                 {lines}
             </div>

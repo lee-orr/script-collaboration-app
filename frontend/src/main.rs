@@ -83,16 +83,17 @@ impl Component for App {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let changed = ctx.link().callback(|value: String| Msg::UpdateContent(value));
+        let changed_2 = ctx.link().callback(|value: String| Msg::UpdateContent(value));
 
         html! {
             <div class="h-screen bg-gray-600 w-full flex flex-row items-center justify-center gap-y-3">
 
-            <div class="w-1/4 text-gray-100 h-full overflow-y-scroll whitespace-pre-wrap">
-                {&self.content}
+            <div class="w-2/5 text-gray-100 h-full whitespace-pre-wrap">
+                <Editor content={self.content.clone()} title={"Editor".to_owned()} changed={changed}/>
             </div>
-                 <div class="w-3/4 text-gray-100 h-full overflow-y-scroll">
+                 <div class="w-2/5 text-gray-100 h-full overflow-y-scroll">
                     if let Some(parsed) = &self.parsed {
-                        <Display changed={changed} script={parsed.clone()} mode ={DisplayMode::Editor}/>
+                        <Display changed={changed_2} script={parsed.clone()} mode ={DisplayMode::DisplayNotes}/>
                     } else {
                         <div>{"Failed to parse"}</div>
                     }
