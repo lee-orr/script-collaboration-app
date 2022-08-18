@@ -255,11 +255,14 @@ fn view_line(
             },
             ChunkRelationship::None,
         ),
-        Line::Empty => (html!(<div>{"\u{00a0}"}</div>), if let Line::CharacterContent(_, _, _) = last_line {
+        Line::Empty => (
+            html!(<div>{"\u{00a0}"}</div>),
+            if let Line::CharacterContent(_, _, _) = last_line {
                 ChunkRelationship::SameChunk
-        } else {
-            ChunkRelationship::None
-        }),
+            } else {
+                ChunkRelationship::None
+            },
+        ),
         _ => (html!(<>{"a"}</>), ChunkRelationship::None),
     }
 }
@@ -335,7 +338,7 @@ impl Component for Display {
                     last_meaningful_line = &line;
                 }
                 last_line = &line;
-                
+
                 view_line(&line, last, is_editor, display_notes)
             })
             .collect::<Vec<_>>();

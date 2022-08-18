@@ -1,23 +1,23 @@
 extern crate reqwest_wasm;
 
-use std::borrow::Borrow;
+use crate::editor::Editor;
+use crate::fountain::types::LineContent;
+use fountain::display::{Display, DisplayMode};
 use fountain::parser::parse_fountain;
 use fountain::types::Script;
-use fountain::display::{Display, DisplayMode};
+use gloo::timers::callback::Timeout;
+use std::borrow::Borrow;
 use web_sys::console;
 use yew::html::Scope;
 use yew::prelude::*;
-use crate::editor::Editor;
-use crate::fountain::types::LineContent;
-use gloo::timers::callback::{Timeout};
 
 mod data;
-pub mod fountain;
 mod editor;
+pub mod fountain;
 
 enum Msg {
     UpdateContent(String),
-    ReadyToParse
+    ReadyToParse,
 }
 
 struct App {
@@ -36,12 +36,21 @@ impl Component for App {
         let parsed = parse_fountain(&content);
         let title = if let Some(title) = &parsed.title.title {
             title.to_owned()
-        } else { vec![LineContent { content: format!("A Title"), ..Default::default()}] };
+        } else {
+            vec![LineContent {
+                content: format!("A Title"),
+                ..Default::default()
+            }]
+        };
         Self {
             content: content.to_owned(),
-            title: title.into_iter().map(|c| c.content.to_owned()).collect::<Vec<String>>().join(""),
+            title: title
+                .into_iter()
+                .map(|c| c.content.to_owned())
+                .collect::<Vec<String>>()
+                .join(""),
             parsed: Some(parsed),
-            timeout: None
+            timeout: None,
         }
     }
 
@@ -55,7 +64,7 @@ impl Component for App {
                 let mut timeout = self.timeout.take();
                 self.timeout = None;
 
-                if let Some(timeout) = timeout{
+                if let Some(timeout) = timeout {
                     timeout.cancel();
                 }
 
@@ -66,14 +75,21 @@ impl Component for App {
 
                 self.timeout = Some(handle);
                 false
-            },
+            }
             Msg::ReadyToParse => {
                 let parsed = parse_fountain(&self.content);
                 if let Some(title) = &parsed.title.title {
-                    self.title = title.into_iter().map(|c| c.content.to_owned()).collect::<Vec<String>>().join("");
+                    self.title = title
+                        .into_iter()
+                        .map(|c| c.content.to_owned())
+                        .collect::<Vec<String>>()
+                        .join("");
                 }
                 unsafe {
-                    console::log_2(&"Parsed".into(), &serde_json::to_string(&parsed).unwrap().into());
+                    console::log_2(
+                        &"Parsed".into(),
+                        &serde_json::to_string(&parsed).unwrap().into(),
+                    );
                 }
                 self.parsed = Some(parsed);
                 true
@@ -82,8 +98,12 @@ impl Component for App {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let changed = ctx.link().callback(|value: String| Msg::UpdateContent(value));
-        let changed_2 = ctx.link().callback(|value: String| Msg::UpdateContent(value));
+        let changed = ctx
+            .link()
+            .callback(|value: String| Msg::UpdateContent(value));
+        let changed_2 = ctx
+            .link()
+            .callback(|value: String| Msg::UpdateContent(value));
 
         html! {
             <div class="h-screen bg-gray-600 w-full flex flex-row items-center justify-center gap-y-3">
@@ -102,8 +122,7 @@ impl Component for App {
         }
     }
 
-    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-    }
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {}
 }
 
 fn main() {

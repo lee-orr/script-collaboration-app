@@ -5,12 +5,12 @@ use yew::Properties;
 
 #[derive(Clone, Serialize, Deserialize, Default, PartialEq, Eq, Debug)]
 pub struct LineContent {
-    pub raw_content:String,
+    pub raw_content: String,
     pub content: String,
     pub bold: bool,
     pub italic: bool,
     pub underline: bool,
-    pub note: bool
+    pub note: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -18,13 +18,13 @@ pub enum CharacterLine {
     CharacterHeading(bool),
     Dialogue,
     Parenthetical,
-    Lyrics
+    Lyrics,
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum TextAlignment {
     Left,
-    Center
+    Center,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]

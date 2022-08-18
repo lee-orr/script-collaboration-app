@@ -1,23 +1,21 @@
-use yew::prelude::*;
-use yew::{virtual_dom::AttrValue};
 use wasm_bindgen::JsCast;
 use web_sys::{console, HtmlTextAreaElement};
+use yew::prelude::*;
+use yew::virtual_dom::AttrValue;
 
 pub enum EditorMsg {
     None,
-    ChangedContent(String)
+    ChangedContent(String),
 }
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct EditorProps {
     pub content: String,
     pub title: String,
-    pub changed: Callback<String>
+    pub changed: Callback<String>,
 }
 
-pub struct Editor {
-}
-
+pub struct Editor {}
 
 const CONTENTEDITABLE: AttrValue = AttrValue::Static("true");
 
@@ -26,12 +24,11 @@ impl Component for Editor {
     type Properties = EditorProps;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
-        Self {
-        }
+        Self {}
     }
 
     fn view(&self, ctx: &yew::Context<Self>) -> Html {
-        let EditorProps { content, title,..} = ctx.props();
+        let EditorProps { content, title, .. } = ctx.props();
         let content = AttrValue::from(content.to_owned());
 
         let onchange = ctx.link().callback(|event: InputEvent| {
@@ -62,7 +59,7 @@ impl Component for Editor {
                     console::log_2(&"Content".into(), &content.clone().into());
                 }
                 ctx.props().changed.emit(content);
-            },
+            }
             _ => {}
         }
         false

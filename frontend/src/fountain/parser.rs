@@ -465,7 +465,10 @@ fn parse_content_formatting(text: &str) -> Vec<LineContent> {
                     star_combo_started = 6;
                 }
                 last_raw_span.push('*');
-            } else if immediate_previous == Some('*') && immediate_next != Some('*') && star_combo_started <= 0 {
+            } else if immediate_previous == Some('*')
+                && immediate_next != Some('*')
+                && star_combo_started <= 0
+            {
                 last_raw_span.push('*');
                 if bold {
                     let span = last_span;
