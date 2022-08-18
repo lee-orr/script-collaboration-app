@@ -61,7 +61,7 @@ impl Component for App {
 
                 let handle = {
                     let link = ctx.link().clone();
-                    Timeout::new(500, move || link.send_message(Msg::ReadyToParse))
+                    Timeout::new(2000, move || link.send_message(Msg::ReadyToParse))
                 };
 
                 self.timeout = Some(handle);
