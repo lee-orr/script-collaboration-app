@@ -1,3 +1,5 @@
+use std::str::Chars;
+
 use super::types::{CharacterLine, Line, LineContent, Script, TextAlignment, Title};
 
 pub fn parse_fountain(source: &str) -> Script {
@@ -90,7 +92,7 @@ fn parse_character_heading(line: &str, previous_line: &Line) -> Option<(String, 
 
 fn parse_dialog(line: &str, previous_line: &Line) -> Option<(String, bool)> {
     if match previous_line {
-        Line::CharacterContent(_,_,_) => true,
+        Line::CharacterContent(_, _, _) => true,
         _ => false,
     } {
         Some((
@@ -297,136 +299,262 @@ fn parse_title(source: &Option<&&[(String, bool)]>) -> (Title, bool) {
     }
 }
 
+struct IterPreviousAndNextTwo<T, T2>
+where
+    T2: Iterator<Item = T>,
+    T: Clone,
+{
+    last: (Option<T>, Option<T>, Option<T>, Option<T>),
+    iterator: T2,
+}
+
+impl<T, T2> IterPreviousAndNextTwo<T, T2>
+where
+    T2: Iterator<Item = T>,
+    T: Clone,
+{
+    pub fn create(mut iterator: T2) -> Self {
+        let first = iterator.next();
+        let second = iterator.next();
+        let last = (second, first, None, None);
+        IterPreviousAndNextTwo { last, iterator }
+    }
+}
+
+impl<T, T2> Iterator for IterPreviousAndNextTwo<T, T2>
+where
+    T2: Iterator<Item = T>,
+    T: Clone,
+{
+    type Item = (Option<T>, Option<T>, Option<T>, Option<T>, Option<T>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.iterator.next();
+        let result = (
+            self.last.3.clone(),
+            self.last.2.clone(),
+            self.last.1.clone(),
+            self.last.0.clone(),
+            next.clone(),
+        );
+        self.last = (
+            next,
+            self.last.0.clone(),
+            self.last.1.clone(),
+            self.last.2.clone(),
+        );
+        match result {
+            (None, None, None, None, None) => None,
+            _ => Some(result),
+        }
+    }
+}
+
 fn parse_content_formatting(text: &str) -> Vec<LineContent> {
-    let mut process_underline = false;
-    let processing = text
-        .split("_")
-        .map(|v| {
-            if v.len() == 0 {
-                (v.to_owned(), false)
-            } else if v.ends_with("\\") {
-                (
-                    format!("{}_", v[0..v.len() - 1].to_owned()),
-                    process_underline,
-                )
+    let mut chars: IterPreviousAndNextTwo<char, Chars> =
+        IterPreviousAndNextTwo::create(text.chars());
+    let mut bold = false;
+    let mut underline = false;
+    let mut italic = false;
+    let mut note = false;
+
+    let mut last_raw_span: Vec<char> = vec![];
+    let mut last_span: Vec<char> = vec![];
+    let mut result = vec![];
+    let mut star_combo_started = 0;
+
+    for (previous, immediate_previous, char, immediate_next, next) in chars {
+        star_combo_started = star_combo_started - 1;
+        if char == Some('_') {
+            if underline {
+                last_raw_span.push('_');
+                let span = last_span;
+                last_span = vec![];
+                let raw_span = last_raw_span;
+                last_raw_span = vec![];
+                result.push(LineContent {
+                    content: span.into_iter().collect(),
+                    raw_content: raw_span.into_iter().collect(),
+                    bold,
+                    underline,
+                    italic,
+                    note,
+                });
+                underline = false;
             } else {
-                process_underline = if process_underline { false } else { true };
-                (v.to_owned(), !process_underline)
+                let span = last_span;
+                last_span = vec![];
+                let raw_span = last_raw_span;
+                last_raw_span = vec![];
+                result.push(LineContent {
+                    content: span.into_iter().collect(),
+                    raw_content: raw_span.into_iter().collect(),
+                    bold,
+                    underline,
+                    italic,
+                    note,
+                });
+                underline = true;
+                last_raw_span.push('_');
             }
-        })
-        .filter(|v| v.0.len() > 0)
-        .collect::<Vec<(String, bool)>>();
+        } else if char == Some('[') && immediate_next == Some('[') {
+            let span = last_span;
+            last_span = vec![];
+            let raw_span = last_raw_span;
+            last_raw_span = vec![];
+            result.push(LineContent {
+                content: span.into_iter().collect(),
+                raw_content: raw_span.into_iter().collect(),
+                bold,
+                underline,
+                italic,
+                note,
+            });
+            note = true;
+            last_raw_span.push('[');
+        } else if char == Some(']') && immediate_previous == Some(']') {
+            last_raw_span.push(']');
+            let span = last_span;
+            last_span = vec![];
+            let raw_span = last_raw_span;
+            last_raw_span = vec![];
+            result.push(LineContent {
+                content: span.into_iter().collect(),
+                raw_content: raw_span.into_iter().collect(),
+                bold,
+                underline,
+                italic,
+                note,
+            });
+            note = false;
+        } else if char == Some('*') {
+            if previous == Some('*') && immediate_previous == Some('*') && star_combo_started <= 0 {
+                last_raw_span.push('*');
+                if bold && italic {
+                    let span = last_span;
+                    last_span = vec![];
+                    let raw_span = last_raw_span;
+                    last_raw_span = vec![];
+                    result.push(LineContent {
+                        content: span.into_iter().collect(),
+                        raw_content: raw_span.into_iter().collect(),
+                        bold,
+                        underline,
+                        italic,
+                        note,
+                    });
+                    bold = false;
+                    italic = false;
+                }
+            } else if immediate_next == Some('*') && next == Some('*') {
+                if !bold && !italic {
+                    let span = last_span;
+                    last_span = vec![];
+                    let raw_span = last_raw_span;
+                    last_raw_span = vec![];
+                    result.push(LineContent {
+                        content: span.into_iter().collect(),
+                        raw_content: raw_span.into_iter().collect(),
+                        bold,
+                        underline,
+                        italic,
+                        note,
+                    });
+                    bold = true;
+                    italic = true;
+                    star_combo_started = 6;
+                }
+                last_raw_span.push('*');
+            } else if immediate_previous == Some('*') && immediate_next != Some('*') && star_combo_started <= 0 {
+                last_raw_span.push('*');
+                if bold {
+                    let span = last_span;
+                    last_span = vec![];
+                    let raw_span = last_raw_span;
+                    last_raw_span = vec![];
+                    result.push(LineContent {
+                        content: span.into_iter().collect(),
+                        raw_content: raw_span.into_iter().collect(),
+                        bold,
+                        underline,
+                        italic,
+                        note,
+                    });
+                    bold = false;
+                }
+            } else if immediate_next == Some('*') {
+                if !bold {
+                    let span = last_span;
+                    last_span = vec![];
+                    let raw_span = last_raw_span;
+                    last_raw_span = vec![];
+                    result.push(LineContent {
+                        content: span.into_iter().collect(),
+                        raw_content: raw_span.into_iter().collect(),
+                        bold,
+                        underline,
+                        italic,
+                        note,
+                    });
+                    bold = true;
+                    star_combo_started = 3;
+                }
+                last_raw_span.push('*');
+            } else if star_combo_started > 0 {
+                last_raw_span.push('*');
+            } else {
+                if italic {
+                    last_raw_span.push('*');
+                    let span = last_span;
+                    last_span = vec![];
+                    let raw_span = last_raw_span;
+                    last_raw_span = vec![];
+                    result.push(LineContent {
+                        content: span.into_iter().collect(),
+                        raw_content: raw_span.into_iter().collect(),
+                        bold,
+                        underline,
+                        italic,
+                        note,
+                    });
+                    italic = false;
+                } else {
+                    let span = last_span;
+                    last_span = vec![];
+                    let raw_span = last_raw_span;
+                    last_raw_span = vec![];
+                    result.push(LineContent {
+                        content: span.into_iter().collect(),
+                        raw_content: raw_span.into_iter().collect(),
+                        bold,
+                        underline,
+                        italic,
+                        note,
+                    });
+                    italic = true;
+                    last_raw_span.push('*');
+                }
+            }
+        } else {
+            if let Some(char) = char {
+                last_span.push(char);
+                last_raw_span.push(char);
+            }
+        }
+    }
 
-    let mut process_bold = false;
-    let processing = processing
-        .into_iter()
-        .enumerate()
-        .map(|(segment, (line, underline))| {
-            let split = line.split("**").collect::<Vec<_>>();
-            let len = split.len();
-            split
-                .into_iter()
-                .enumerate()
-                .map(|(i, v)| {
-                    if i == len - 1 {
-                        (v.to_owned(), underline, process_bold)
-                    } else if v.len() == 0 {
-                        (v.to_owned(), false, false)
-                    } else if v.ends_with("\\") {
-                        (
-                            format!("{}**", v[0..v.len() - 1].to_owned()),
-                            underline,
-                            process_bold,
-                        )
-                    } else {
-                        process_bold = if process_bold { false } else { true };
-                        (v.to_owned(), underline, !process_bold)
-                    }
-                })
-                .collect::<Vec<(String, bool, bool)>>()
-        })
-        .flatten()
-        .filter(|v| v.0.len() > 0)
-        .collect::<Vec<(String, bool, bool)>>();
-
-    let mut process_italic = false;
-    let processing = processing
-        .into_iter()
-        .map(|(line, underline, bold)| {
-            let split = line.split("*").collect::<Vec<_>>();
-            let len = split.len();
-            split
-                .into_iter()
-                .enumerate()
-                .map(|(i, v)| {
-                    if i == len - 1 {
-                        (v.to_owned(), underline, bold, process_italic)
-                    } else if v.len() == 0 {
-                        (v.to_owned(), false, false, false)
-                    } else if v.ends_with("\\") {
-                        (
-                            format!("{}*", v[0..v.len() - 1].to_owned()),
-                            underline,
-                            bold,
-                            process_italic,
-                        )
-                    } else {
-                        process_italic = if process_italic { false } else { true };
-                        (v.to_owned(), underline, bold, !process_italic)
-                    }
-                })
-                .collect::<Vec<(String, bool, bool, bool)>>()
-        })
-        .flatten()
-        .filter(|v| v.0.len() > 0)
-        .collect::<Vec<(String, bool, bool, bool)>>();
-
-    let mut processing_note = false;
-    let processing = processing
-        .into_iter()
-        .map(|(line, underline, bold, italic)| {
-            let split = line.split("[[").collect::<Vec<_>>();
-            let len = split.len();
-            split
-                .into_iter()
-                .enumerate()
-                .map(|(i, v)| {
-                    let split = v.split("]]").collect::<Vec<_>>();
-                    if split.len() <= 1 {
-                        vec![[(v.to_owned(), underline, bold, italic, false)]]
-                    } else {
-                        split
-                            .into_iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                if i == 0 {
-                                    [(v.to_owned(), underline, bold, italic, true)]
-                                } else {
-                                    [(v.to_owned(), underline, bold, italic, false)]
-                                }
-                            })
-                            .collect::<Vec<_>>()
-                    }
-                })
-                .flatten()
-                .flatten()
-                .collect::<Vec<(String, bool, bool, bool, bool)>>()
-        })
-        .flatten()
-        .filter(|v| v.0.len() > 0)
-        .collect::<Vec<(String, bool, bool, bool, bool)>>();
-
-    processing
-        .into_iter()
-        .map(|(content, underline, bold, italic, note)| LineContent {
-            content,
-            underline,
+    if last_raw_span.len() > 0 {
+        result.push(LineContent {
+            content: last_span.into_iter().collect(),
+            raw_content: last_raw_span.into_iter().collect(),
             bold,
+            underline,
             italic,
             note,
-            ..Default::default()
-        })
-        .collect()
+        });
+    }
+
+    result
 }
 
 #[cfg(test)]
@@ -436,7 +564,7 @@ mod tests {
         types::{CharacterLine, Line, LineContent, TextAlignment},
     };
 
-    use super::{parse_content_formatting};
+    use super::parse_content_formatting;
 
     #[test]
     fn empty_string_returns_empty_document() {
@@ -608,18 +736,18 @@ i/e Heading 7",
             assert!(false, "didn't parse line")
         }
         if let Line::CharacterContent(line, line_type, character) = &result.lines[3] {
-                assert_eq!(character, "THIS IS A CHARACTER");
-                assert_eq!(line_type, &CharacterLine::CharacterHeading(false));
-            } else {
-                panic!()
-            }
-            if let Line::CharacterContent(line, line_type, character) = &result.lines[4] {
-                assert_eq!(line[0].content, "testing some dialogue and shit");
-                assert_eq!(character, "THIS IS A CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Dialogue);
-            } else {
-                panic!()
-            }
+            assert_eq!(character, "THIS IS A CHARACTER");
+            assert_eq!(line_type, &CharacterLine::CharacterHeading(false));
+        } else {
+            panic!()
+        }
+        if let Line::CharacterContent(line, line_type, character) = &result.lines[4] {
+            assert_eq!(line[0].content, "testing some dialogue and shit");
+            assert_eq!(character, "THIS IS A CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Dialogue);
+        } else {
+            panic!()
+        }
     }
 
     #[test]
@@ -638,18 +766,18 @@ i/e Heading 7",
             assert!(false, "didn't parse line")
         }
         if let Line::CharacterContent(line, line_type, character) = &result.lines[3] {
-                assert_eq!(character, "THIS IS A CHARACTER");
-                assert_eq!(line_type, &CharacterLine::CharacterHeading(true));
-            } else {
-                panic!()
-            }
-            if let Line::CharacterContent(line, line_type, character) = &result.lines[4] {
-                assert_eq!(line[0].content, "testing some dialogue and shit");
-                assert_eq!(character, "THIS IS A CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Dialogue);
-            } else {
-                panic!()
-            }
+            assert_eq!(character, "THIS IS A CHARACTER");
+            assert_eq!(line_type, &CharacterLine::CharacterHeading(true));
+        } else {
+            panic!()
+        }
+        if let Line::CharacterContent(line, line_type, character) = &result.lines[4] {
+            assert_eq!(line[0].content, "testing some dialogue and shit");
+            assert_eq!(character, "THIS IS A CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Dialogue);
+        } else {
+            panic!()
+        }
     }
 
     #[test]
@@ -670,18 +798,18 @@ i/e Heading 7",
             assert!(false, "didn't parse line")
         }
         if let Line::CharacterContent(line, line_type, character) = &result.lines[3] {
-                assert_eq!(character, "THIS IS A CHARACTER");
-                assert_eq!(line_type, &CharacterLine::CharacterHeading(false));
-            } else {
-                panic!()
-            }
-            if let Line::CharacterContent(line, line_type, character) = &result.lines[4] {
-                assert_eq!(line[0].content, "testing some dialogue and shit");
-                assert_eq!(character, "THIS IS A CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Dialogue);
-            } else {
-                panic!()
-            }
+            assert_eq!(character, "THIS IS A CHARACTER");
+            assert_eq!(line_type, &CharacterLine::CharacterHeading(false));
+        } else {
+            panic!()
+        }
+        if let Line::CharacterContent(line, line_type, character) = &result.lines[4] {
+            assert_eq!(line[0].content, "testing some dialogue and shit");
+            assert_eq!(character, "THIS IS A CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Dialogue);
+        } else {
+            panic!()
+        }
     }
 
     #[test]
@@ -694,12 +822,12 @@ i/e Heading 7",
         );
         assert_eq!(result.lines.len(), 3);
         if let Line::CharacterContent(line, line_type, character) = &result.lines[1] {
-                assert_eq!(line[0].content, "I am talking now...");
-                assert_eq!(character, "CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Dialogue);
-            } else {
-                panic!()
-            }
+            assert_eq!(line[0].content, "I am talking now...");
+            assert_eq!(character, "CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Dialogue);
+        } else {
+            panic!()
+        }
     }
 
     #[test]
@@ -717,33 +845,33 @@ i/e Heading 7",
         );
         assert_eq!(result.lines.len(), 8);
         if let Line::CharacterContent(line, line_type, character) = &result.lines[1] {
-                assert_eq!(line[0].content, "(to everyone)");
-                assert_eq!(character, "CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Parenthetical);
-            } else {
-                panic!()
-            }
-            if let Line::CharacterContent(line, line_type, character) = &result.lines[2] {
-                assert_eq!(line[0].content, "I am talking now!");
-                assert_eq!(character, "CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Dialogue);
-            } else {
-                panic!()
-            }
-            if let Line::CharacterContent(line, line_type, character) = &result.lines[3] {
-                assert_eq!(line[0].content, "(aside)");
-                assert_eq!(character, "CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Parenthetical);
-            } else {
-                panic!()
-            }
-            if let Line::CharacterContent(line, line_type, character) = &result.lines[4] {
-                assert_eq!(line[0].content, "I think...");
-                assert_eq!(character, "CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Dialogue);
-            } else {
-                panic!()
-            }
+            assert_eq!(line[0].content, "(to everyone)");
+            assert_eq!(character, "CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Parenthetical);
+        } else {
+            panic!()
+        }
+        if let Line::CharacterContent(line, line_type, character) = &result.lines[2] {
+            assert_eq!(line[0].content, "I am talking now!");
+            assert_eq!(character, "CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Dialogue);
+        } else {
+            panic!()
+        }
+        if let Line::CharacterContent(line, line_type, character) = &result.lines[3] {
+            assert_eq!(line[0].content, "(aside)");
+            assert_eq!(character, "CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Parenthetical);
+        } else {
+            panic!()
+        }
+        if let Line::CharacterContent(line, line_type, character) = &result.lines[4] {
+            assert_eq!(line[0].content, "I think...");
+            assert_eq!(character, "CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Dialogue);
+        } else {
+            panic!()
+        }
 
         if let Line::Action(line, _) = &result.lines[6] {
             assert_eq!(line[0].content, "and an action");
@@ -760,12 +888,12 @@ i/e Heading 7",
         );
         assert_eq!(result.lines.len(), 2);
         if let Line::CharacterContent(line, line_type, character) = &result.lines[1] {
-                assert_eq!(line[0].content, "part of a song");
-                assert_eq!(character, "CHARACTER");
-                assert_eq!(line_type, &CharacterLine::Lyrics);
-            } else {
-                panic!()
-            }
+            assert_eq!(line[0].content, "part of a song");
+            assert_eq!(character, "CHARACTER");
+            assert_eq!(line_type, &CharacterLine::Lyrics);
+        } else {
+            panic!()
+        }
     }
 
     #[test]
@@ -857,6 +985,7 @@ i/e Heading 7",
 
         let content = &result[0];
 
+        assert_eq!(content.raw_content, "test line");
         assert_eq!(content.content, "test line");
         assert_eq!(content.bold, false);
         assert_eq!(content.underline, false);
@@ -872,6 +1001,7 @@ i/e Heading 7",
 
         let content = &result[0];
 
+        assert_eq!(content.raw_content, "test ");
         assert_eq!(content.content, "test ");
         assert_eq!(content.bold, false);
         assert_eq!(content.underline, false);
@@ -880,6 +1010,7 @@ i/e Heading 7",
 
         let content = &result[1];
 
+        assert_eq!(content.raw_content, "_line_");
         assert_eq!(content.content, "line");
         assert_eq!(content.bold, false);
         assert_eq!(content.underline, true);
@@ -903,7 +1034,7 @@ i/e Heading 7",
 
         let content = &result[1];
 
-        assert_eq!(content.content, "line");
+        assert_eq!(content.raw_content, "**line**");
         assert_eq!(content.bold, true);
         assert_eq!(content.underline, false);
         assert_eq!(content.italic, false);
@@ -926,8 +1057,31 @@ i/e Heading 7",
 
         let content = &result[1];
 
-        assert_eq!(content.content, "line");
+        assert_eq!(content.raw_content, "*line*");
         assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, true);
+        assert_eq!(content.note, false);
+    }
+
+    #[test]
+    fn parse_bold_italic_correctly() {
+        let result = parse_content_formatting("test ***line***");
+
+        assert_eq!(result.len(), 2);
+
+        let content = &result[0];
+
+        assert_eq!(content.content, "test ");
+        assert_eq!(content.bold, false);
+        assert_eq!(content.underline, false);
+        assert_eq!(content.italic, false);
+        assert_eq!(content.note, false);
+
+        let content = &result[1];
+
+        assert_eq!(content.raw_content, "***line***");
+        assert_eq!(content.bold, true);
         assert_eq!(content.underline, false);
         assert_eq!(content.italic, true);
         assert_eq!(content.note, false);
@@ -949,7 +1103,7 @@ i/e Heading 7",
 
         let content = &result[1];
 
-        assert_eq!(content.content, "line");
+        assert_eq!(content.raw_content, "[[line]]");
         assert_eq!(content.bold, false);
         assert_eq!(content.underline, false);
         assert_eq!(content.italic, false);

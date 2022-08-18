@@ -5,6 +5,7 @@ use yew::Properties;
 
 #[derive(Clone, Serialize, Deserialize, Default, PartialEq, Eq, Debug)]
 pub struct LineContent {
+    pub raw_content:String,
     pub content: String,
     pub bold: bool,
     pub italic: bool,

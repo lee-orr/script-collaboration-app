@@ -37,7 +37,7 @@ fn format_text(text: &Vec<LineContent>, is_editor: bool, display_notes: bool) ->
         let mut last_italic = false;
         let mut last_underline = false;
         let mut last_note = false;
-        html!(<span>{text.into_iter().map(|LineContent { content, bold, italic, underline, note }| {
+        html!(<span>{text.into_iter().map(|LineContent { content, bold, italic, underline, note, raw_content }| {
             let mut classes = "whitespace-pre-wraped".to_owned();
             if *underline {
                 classes = format!("{} {}", classes, "underline");
@@ -49,36 +49,10 @@ fn format_text(text: &Vec<LineContent>, is_editor: bool, display_notes: bool) ->
                 classes = format!("{} {}", classes, "italic");
             }
             if *note {
-                if !display_notes {
-                    classes = format!("{} {}", classes, "pl-1 pr-1 bg-red-800 text-red-400");
-                } else {
-                    classes = format!("{} {}", classes, "pl-1 pr-1 bg-gray-800 text-gray-400");
-                }
-                
+                classes = format!("{} {}", classes, "pl-1 pr-1 bg-gray-800 text-gray-400");
             }
 
-            let mut result = html!(<span class={classes}>{if content == "&nbsp;" { editor_tag(content) } else { html!(<>{&content}</>) }}</span>);
-
-            if *underline != last_underline {
-                last_underline = *underline;
-                result = html!(<>{editor_tag("_")}{result}</>);
-            }
-            if *bold != last_bold {
-                last_bold = *bold;
-                result = html!(<>{editor_tag("**")}{result}</>);
-            }
-            if *italic != last_italic {
-                last_italic = *italic;
-                result = html!(<>{editor_tag("*")}{result}</>);
-            }
-            if *note && !last_note {
-                last_note = true;
-                result = html!(<>{editor_tag("[[")}{result}</>);
-            }
-            if !*note && last_note {
-                last_note = true;
-                result = html!(<>{editor_tag("]]")}{result}</>);
-            }
+            let mut result = html!(<span class={classes}>{if content == "&nbsp;" { editor_tag(content) } else { html!(<>{&raw_content}</>) }}</span>);
 
             Some(result)
         }).flatten().collect::<Vec<_>>()}
@@ -111,7 +85,7 @@ fn format_text(text: &Vec<LineContent>, is_editor: bool, display_notes: bool) ->
             }
         }</span>)
     } else {
-        html!(<span>{text.into_iter().map(|LineContent { content, bold, italic, underline, note }| {
+        html!(<span>{text.into_iter().map(|LineContent { content, bold, italic, underline, note, raw_content }| {
             let mut classes = "whitespace-pre ".to_owned();
             if *underline {
                 classes = format!("{} {}", classes, "underline");
