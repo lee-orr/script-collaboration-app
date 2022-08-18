@@ -1,6 +1,6 @@
 use wasm_bindgen::JsCast;
 use web_sys::{console, HtmlElement, InputEvent};
-use yew::{html, Callback, Component, Properties};
+use yew::{html, virtual_dom::VNode, Callback, Component, Properties};
 
 use super::types::{CharacterLine, Line, LineContent, Script, TextAlignment};
 
@@ -38,7 +38,7 @@ fn format_text(text: &Vec<LineContent>, is_editor: bool, display_notes: bool) ->
         let mut last_underline = false;
         let mut last_note = false;
         html!(<span>{text.into_iter().map(|LineContent { content, bold, italic, underline, note }| {
-            let mut classes = "whitespace-pre".to_owned();
+            let mut classes = "whitespace-pre-wraped".to_owned();
             if *underline {
                 classes = format!("{} {}", classes, "underline");
             }
@@ -192,13 +192,13 @@ fn view_title(script: &Script, is_editor: bool, display_notes: bool) -> yew::Htm
 }
 
 fn view_character_content(
-    line: &(Vec<LineContent>, CharacterLine, String),
+    line: (&Vec<LineContent>, &CharacterLine, &str),
     is_editor: bool,
     display_notes: bool,
 ) -> yew::Html {
     match line {
-        (_, CharacterLine::CharacterHeading(_), character) => {
-            html!(<div class="flex flex-row justify-center uppercase pt-2">{&character}</div>)
+        (_, CharacterLine::CharacterHeading(is_dual), character) => {
+            html!(<div class="flex flex-row justify-center uppercase pt-2">{&character}{if is_editor && *is_dual { editor_tag("^")} else { html!(<></>) }}</div>)
         }
         (content, CharacterLine::Dialogue, _) => {
             html!(<div class="flex flex-row justify-center text-center pl-20 pr-20">{format_text(&content, is_editor, display_notes)}</div>)
@@ -215,88 +215,78 @@ fn view_character_content(
             }
         }{format_text(&content, is_editor, display_notes)}</div></div>)
         }
-        (_, CharacterLine::Empty, _) => html!(<><br/></>),
         _ => html!(<>{"C"}</>),
     }
 }
 
-fn separate_character_content(
-    content: &Vec<(Vec<LineContent>, CharacterLine, String)>,
-    is_editor: bool,
-    display_notes: bool,
-) -> yew::Html {
-    let mut columns: Vec<Vec<yew::Html>> = vec![];
-    let mut latest: Vec<&(Vec<LineContent>, CharacterLine, String)> = vec![];
-
-    let mut last_character = "";
-    for line in content {
-        if latest.len() == 0 {
-            last_character = &line.2;
-            latest.push(line);
-        } else {
-            if last_character == line.2 {
-                latest.push(line);
-            } else {
-                columns.push(
-                    latest
-                        .into_iter()
-                        .map(|c| view_character_content(c, is_editor, display_notes))
-                        .collect::<Vec<yew::Html>>(),
-                );
-                latest = vec![line];
-                last_character = &line.2;
-            }
-        }
-    }
-
-    columns.push(
-        latest
-            .into_iter()
-            .map(|c| view_character_content(c, is_editor, display_notes))
-            .collect::<Vec<yew::Html>>(),
-    );
-
-    html!(
-        <div class="flex flex-row justify-center items-start">
-            {columns.into_iter().map(|c| html!(<div class="flex flex-col justify-center">{c}</div>)).collect::<Vec<yew::Html>>()}
-        </div>
-    )
+#[derive(PartialEq, Eq)]
+enum ChunkRelationship {
+    None,
+    SameChunk,
+    ParallelChunk,
 }
 
-fn view_line(line: &Line, is_editor: bool, display_notes: bool) -> yew::Html {
+fn view_line(
+    line: &Line,
+    last_line: &Line,
+    is_editor: bool,
+    display_notes: bool,
+) -> (yew::Html, ChunkRelationship) {
     match line {
-        Line::CharacterContent(content) => {
-            separate_character_content(content, is_editor, display_notes)
-        }
-        Line::SceneHeading(scene) => {
-            html!(<div class="flex flex-row justify-start uppercase pb-2">{display_scene_heading(scene, is_editor)}</div>)
-        }
-        Line::Action(action, centered) => {
+        Line::CharacterContent(text, line_type, character) => (
+            view_character_content((&text, &line_type, &character), is_editor, display_notes),
+            if let Line::CharacterContent(_, _, previous_character) = last_line {
+                if previous_character == character
+                    && line_type != &CharacterLine::CharacterHeading(false)
+                {
+                    ChunkRelationship::SameChunk
+                } else if line_type == &CharacterLine::CharacterHeading(true) {
+                    ChunkRelationship::ParallelChunk
+                } else {
+                    ChunkRelationship::None
+                }
+            } else {
+                ChunkRelationship::None
+            },
+        ),
+        Line::SceneHeading(scene) => (
+            html!(<div class="flex flex-row justify-start uppercase pb-2">{display_scene_heading(scene, is_editor)}</div>),
+            ChunkRelationship::None,
+        ),
+        Line::Action(action, centered) => (
             if *centered == TextAlignment::Center {
                 html!(<div class="flex flex-row justify-center">{format_text(&action, is_editor, display_notes)}</div>)
             } else {
                 html!(<div class="flex flex-row justify-start">{format_text(&action, is_editor, display_notes)}</div>)
-            }
-        }
-        Line::Transition(transition) => {
-            html!(<div class="flex flex-row justify-end uppercase pb-2 pt-2 pr-5 pl-5">{display_transition(transition, is_editor)}</div>)
-        }
-        Line::PageBreak => {
+            },
+            ChunkRelationship::None,
+        ),
+        Line::Transition(transition) => (
+            html!(<div class="flex flex-row justify-end uppercase pb-2 pt-2 pr-5 pl-5">{display_transition(transition, is_editor)}</div>),
+            ChunkRelationship::None,
+        ),
+        Line::PageBreak => (
             if is_editor {
                 html!(<>{editor_tag("===")}<div class="border-b flex-grow border-black m-2"/></>)
             } else {
                 html!(<div class="border-b flex-grow border-black m-2"/>)
-            }
-        }
-        Line::Boneyard(boneyard) => {
+            },
+            ChunkRelationship::None,
+        ),
+        Line::Boneyard(boneyard) => (
             if display_notes {
                 html!(<div class="flex flex-row justify-right text-gray-400 border-gray-300 m-2 p-2 bg-gray-800">{if is_editor { "/*"} else { "" }}{format_text(&boneyard, is_editor, display_notes)}{if is_editor { "*/"} else { "" }}</div>)
             } else {
                 html!(<></>)
-            }
-        }
-        Line::Empty => html!(<><br/></>),
-        _ => html!(<>{"a"}</>),
+            },
+            ChunkRelationship::None,
+        ),
+        Line::Empty => (html!(<div>{"\u{00a0}"}</div>), if let Line::CharacterContent(_, _, _) = last_line {
+                ChunkRelationship::SameChunk
+        } else {
+            ChunkRelationship::None
+        }),
+        _ => (html!(<>{"a"}</>), ChunkRelationship::None),
     }
 }
 
@@ -356,11 +346,60 @@ impl Component for Display {
         } = &ctx.props();
         let is_editor = mode == &DisplayMode::Editor;
         let display_notes = mode == &DisplayMode::DisplayNotes || mode == &DisplayMode::Editor;
+        let mut last_meaningful_line = &Line::Empty;
+        let mut last_line = &Line::Empty;
         let lines = script
             .lines
             .iter()
-            .map(|line| view_line(&line, is_editor, display_notes))
+            .map(|line| {
+                let last = last_meaningful_line;
+                if line == &Line::Empty {
+                    if last_line == &Line::Empty {
+                        last_meaningful_line = &Line::Empty;
+                    }
+                } else {
+                    last_meaningful_line = &line;
+                }
+                last_line = &line;
+                
+                view_line(&line, last, is_editor, display_notes)
+            })
             .collect::<Vec<_>>();
+
+        let mut last_chunk = vec![];
+        let mut last_parallel_chunks = vec![];
+        let mut chunks = vec![];
+
+        for (line, part_of_previous_chunk) in lines.into_iter() {
+            match part_of_previous_chunk {
+                ChunkRelationship::ParallelChunk => {
+                    last_parallel_chunks.push(last_chunk);
+                    last_chunk = vec![line];
+                }
+                ChunkRelationship::SameChunk => {
+                    last_chunk.push(line);
+                }
+                ChunkRelationship::None => {
+                    last_parallel_chunks.push(last_chunk);
+                    chunks.push(last_parallel_chunks);
+                    last_parallel_chunks = vec![];
+                    last_chunk = vec![line];
+                }
+            }
+        }
+
+        last_parallel_chunks.push(last_chunk);
+        chunks.push(last_parallel_chunks);
+
+        let chunks = chunks
+        .into_iter()
+        .map(|chunk| html!(
+            <div class="flex flex-row w-full justify-center">
+            {chunk
+                .into_iter()
+                .map(|lines| html!(<div class="flex flex-col items-streach flex-grow">{lines}</div>)).collect::<Vec<_>>()}
+            </div>
+        )).collect::<Vec<_>>();
 
         let onchange = ctx.link().callback(|event: InputEvent| {
             let target = event.target();
@@ -369,19 +408,24 @@ impl Component for Display {
                 if let Ok(input) = input {
                     let mut multiple_empty_lines = false;
                     let text: String = input.inner_text();
-                    let filtered = text.lines().into_iter().filter(|a| {
-                        if a.is_empty() {
-                            if multiple_empty_lines {
-                                return false;
+                    let filtered = text
+                        .lines()
+                        .into_iter()
+                        .filter(|a| {
+                            if a.is_empty() {
+                                if multiple_empty_lines {
+                                    return false;
+                                } else {
+                                    multiple_empty_lines = true;
+                                    return true;
+                                }
                             } else {
-                                multiple_empty_lines = true;
+                                multiple_empty_lines = false;
                                 return true;
                             }
-                        } else {
-                            multiple_empty_lines = false;
-                            return true;
-                        }
-                    }).collect::<Vec<&str>>().join("\n");
+                        })
+                        .collect::<Vec<&str>>()
+                        .join("\n");
                     return EditorMsg::ChangedContent(filtered);
                 }
             }
@@ -391,7 +435,7 @@ impl Component for Display {
         html!(
             <div contenteditable={if is_editor {"true"} else {"false"}} oninput={onchange}>
                 {view_title(&script, is_editor, display_notes)}
-                {lines}
+                {chunks}
             </div>
         )
     }

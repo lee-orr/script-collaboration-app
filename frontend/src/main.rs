@@ -93,7 +93,7 @@ impl Component for App {
             </div>
                  <div class="w-2/5 text-gray-100 h-full overflow-y-scroll">
                     if let Some(parsed) = &self.parsed {
-                        <Display changed={changed_2} script={parsed.clone()} mode ={DisplayMode::DisplayNotes}/>
+                        <Display changed={changed_2} script={parsed.clone()} mode ={DisplayMode::Editor}/>
                     } else {
                         <div>{"Failed to parse"}</div>
                     }

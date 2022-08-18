@@ -17,8 +17,7 @@ pub enum CharacterLine {
     CharacterHeading(bool),
     Dialogue,
     Parenthetical,
-    Lyrics,
-    Empty
+    Lyrics
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -31,7 +30,7 @@ pub enum TextAlignment {
 pub enum Line {
     Action(Vec<LineContent>, TextAlignment),
     SceneHeading(String),
-    CharacterContent(Vec<(Vec<LineContent>, CharacterLine, String)>),
+    CharacterContent(Vec<LineContent>, CharacterLine, String),
     Transition(String),
     PageBreak,
     Boneyard(Vec<LineContent>),
