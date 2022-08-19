@@ -148,6 +148,11 @@ impl Component for Display {
         false
     }
 
+    fn changed(&mut self, ctx: &yew::Context<Self>) -> bool {
+        self.version += 1;
+        true
+    }
+
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let DisplayProps {
             script,
@@ -226,7 +231,7 @@ impl Component for Display {
         )).collect::<Vec<_>>();
 
         html!(
-            <div>
+            <div key={self.version}>
                 {view_title(&script, is_editor, display_notes, title_change)}
                 {chunks}
             </div>

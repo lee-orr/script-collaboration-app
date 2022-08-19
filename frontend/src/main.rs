@@ -61,16 +61,18 @@ impl Component for App {
 
         match msg {
             Msg::UpdateTitle(tag, element) => {
-                let mut parsed = &mut self.parsed;
-                parsed.update_title_element(&tag, element);
+                let parsed = &mut self.parsed;
+                let updated = parsed.update_title_element(&tag, element);
 
-                self.content = export_fountain(&parsed);
+                self.content = export_fountain(&updated);
+                self.parsed = updated;
                 true
             }
             Msg::UpdateLine(id, line) => {
-                let mut parsed = &mut self.parsed;
-                parsed.update_line(id, &line);
-                self.content = export_fountain(&parsed);
+                let parsed = &mut self.parsed;
+                let updated =  parsed.update_line(id, &line);
+                self.content = export_fountain(&updated);
+                self.parsed = updated;
                 true
             }
             Msg::UpdateContent(content) => {

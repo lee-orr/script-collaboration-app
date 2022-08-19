@@ -1,3 +1,5 @@
+use std::{hash::Hash, collections::hash_map::DefaultHasher};
+
 use gloo::timers::callback::Timeout;
 use wasm_bindgen::JsCast;
 use web_sys::{InputEvent, HtmlElement};
@@ -18,16 +20,22 @@ pub struct LineEditorProps {
 
 pub struct LineEditor {
     timeout: Option<Timeout>,
-    inner_content: Option<String>}
+    inner_content: Option<String>,
+    current_line: Line,
+    version: usize
+}
 
 impl Component for LineEditor {
     type Message = EditorMsg;
     type Properties = LineEditorProps;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
+        let line = &ctx.props().line;
         Self {
             timeout: None,
-            inner_content: None
+            inner_content: None,
+            current_line: ctx.props().line.clone(),
+            version: 0
         }
     }
 
@@ -44,7 +52,7 @@ impl Component for LineEditor {
 
                 let handle = {
                     let link = ctx.link().clone();
-                    Timeout::new(2000, move || link.send_message(EditorMsg::ReadyToParse))
+                    Timeout::new(500, move || link.send_message(EditorMsg::ReadyToParse))
                 };
 
                 self.timeout = Some(handle);
@@ -86,7 +94,7 @@ impl Component for LineEditor {
         });
 
         html!(
-        <div class="flex flex-row whitespace-pre-wrap" contenteditable={if is_editor {"true"} else {"false"}} oninput={onchange}>
+        <div key={self.version} class="flex flex-col whitespace-pre-wrap" contenteditable={if is_editor {"true"} else {"false"}} oninput={onchange}>
             {
                 match line {
                     Line::CharacterContent(text, line_type, character) => 
@@ -124,6 +132,15 @@ impl Component for LineEditor {
                 }
             }
         </div>)
+    }
+
+    fn changed(&mut self, ctx: &yew::Context<Self>) -> bool {
+        if ctx.props().line != self.current_line {
+            self.version += 1;
+            true
+        } else {
+            false
+        }
     }
 }
 
