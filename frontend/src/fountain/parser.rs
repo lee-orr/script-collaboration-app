@@ -1,5 +1,7 @@
 use std::str::Chars;
 
+use web_sys::console;
+
 use super::types::{CharacterLine, Line, LineContent, Script, TextAlignment, Title};
 
 pub fn parse_fountain(source: &str) -> Script {
@@ -350,7 +352,7 @@ where
     }
 }
 
-fn parse_content_formatting(text: &str) -> Vec<LineContent> {
+pub fn parse_content_formatting(text: &str) -> Vec<LineContent> {
     let mut chars: IterPreviousAndNextTwo<char, Chars> =
         IterPreviousAndNextTwo::create(text.chars());
     let mut bold = false;

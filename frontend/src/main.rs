@@ -2,14 +2,14 @@ extern crate reqwest_wasm;
 
 use crate::editor::Editor;
 use crate::fountain::types::LineContent;
-use fountain::display::{Display, DisplayMode};
+use fountain::display::{formatting_functions::DisplayMode, Display};
+use fountain::exporter::export_fountain;
 use fountain::parser::parse_fountain;
 use fountain::types::Script;
 use gloo::timers::callback::Timeout;
-use std::borrow::Borrow;
 use web_sys::console;
-use yew::html::Scope;
 use yew::prelude::*;
+use fountain::script_update::*;
 
 mod data;
 mod editor;
@@ -17,14 +17,16 @@ pub mod fountain;
 
 enum Msg {
     UpdateContent(String),
-    ReadyToParse,
+    SetDisplayMode(DisplayMode),
+    UpdateTitle(String, String),
+    UpdateLine(usize, String)
 }
 
 struct App {
     content: String,
     title: String,
-    parsed: Option<Script>,
-    timeout: Option<Timeout>,
+    parsed: Script,
+    mode: DisplayMode,
 }
 
 impl Component for App {
@@ -49,8 +51,8 @@ impl Component for App {
                 .map(|c| c.content.to_owned())
                 .collect::<Vec<String>>()
                 .join(""),
-            parsed: Some(parsed),
-            timeout: None,
+            parsed: parsed,
+            mode: DisplayMode::Editor,
         }
     }
 
@@ -58,25 +60,22 @@ impl Component for App {
         let link = ctx.link();
 
         match msg {
+            Msg::UpdateTitle(tag, element) => {
+                let mut parsed = &mut self.parsed;
+                parsed.update_title_element(&tag, element);
+
+                self.content = export_fountain(&parsed);
+                true
+            }
+            Msg::UpdateLine(id, line) => {
+                let mut parsed = &mut self.parsed;
+                parsed.update_line(id, &line);
+                self.content = export_fountain(&parsed);
+                true
+            }
             Msg::UpdateContent(content) => {
                 self.content = content;
 
-                let mut timeout = self.timeout.take();
-                self.timeout = None;
-
-                if let Some(timeout) = timeout {
-                    timeout.cancel();
-                }
-
-                let handle = {
-                    let link = ctx.link().clone();
-                    Timeout::new(2000, move || link.send_message(Msg::ReadyToParse))
-                };
-
-                self.timeout = Some(handle);
-                false
-            }
-            Msg::ReadyToParse => {
                 let parsed = parse_fountain(&self.content);
                 if let Some(title) = &parsed.title.title {
                     self.title = title
@@ -91,7 +90,11 @@ impl Component for App {
                         &serde_json::to_string(&parsed).unwrap().into(),
                     );
                 }
-                self.parsed = Some(parsed);
+                self.parsed = parsed;
+                true
+            }
+            Msg::SetDisplayMode(mode) => {
+                self.mode = mode;
                 true
             }
         }
@@ -101,22 +104,33 @@ impl Component for App {
         let changed = ctx
             .link()
             .callback(|value: String| Msg::UpdateContent(value));
-        let changed_2 = ctx
-            .link()
-            .callback(|value: String| Msg::UpdateContent(value));
+
+        let mode = self.mode.clone();
+        let set_mode = ctx.link().callback(move |_event: MouseEvent| {
+            Msg::SetDisplayMode(if mode == DisplayMode::Editor {
+                DisplayMode::Display
+            } else {
+                DisplayMode::Editor
+            })
+        });
+
+        let changed_title_element = ctx.link().callback(|(tag, element): (String, String)| Msg::UpdateTitle(tag, element));
+        let changed_line = ctx.link().callback(|(id, line): (usize, String)| Msg::UpdateLine(id, line));
 
         html! {
             <div class="h-screen bg-gray-600 w-full flex flex-row items-center justify-center gap-y-3">
-
-            <div class="w-2/5 text-gray-100 h-full whitespace-pre-wrap">
-                <Editor content={self.content.clone()} title={"Editor".to_owned()} changed={changed}/>
-            </div>
-                 <div class="w-2/5 text-gray-100 h-full overflow-y-scroll">
-                    if let Some(parsed) = &self.parsed {
-                        <Display changed={changed_2} script={parsed.clone()} mode ={DisplayMode::Editor}/>
+                <div class="fixed top-0.5 right-0.5">
+                    <button class="bg-gray-800 hover:bg-gray-700 text-gray-100 p-2" onclick={set_mode}>{ if &self.mode == &DisplayMode::Editor {
+                        "Editor"
                     } else {
-                        <div>{"Failed to parse"}</div>
-                    }
+                        "Display"
+                    }}</button>
+                </div>
+                <div class="w-2/5 text-gray-100 h-full whitespace-pre-wrap">
+                    <Editor content={self.content.clone()} title={"Editor".to_owned()} changed={changed}/>
+                </div>
+                 <div class="w-2/5 text-gray-100 h-full overflow-y-scroll">
+                    <Display changed_line={changed_line} changed_title_element={changed_title_element} script={self.parsed.clone()} mode ={self.mode.clone()}/>
                  </div>
             </div>
         }

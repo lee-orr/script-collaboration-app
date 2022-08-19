@@ -48,7 +48,7 @@ impl Component for Editor {
                 // <div contenteditable={CONTENTEDITABLE} class="whitespace-pre bg-gray-700 text-gray-100 font-light" oninput={onchange}>
                 //     {&content}
                 // </div>
-                <textarea class="bg-gray-700 text-gray-100 font-light flex-grow" oninput={onchange} value={content}/>
+                <textarea class="bg-gray-700 text-gray-100 font-light flex-grow p-2" oninput={onchange} value={content}/>
             </div>)
     }
 
