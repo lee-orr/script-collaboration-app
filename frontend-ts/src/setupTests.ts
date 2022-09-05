@@ -4,7 +4,6 @@ import { DESKTOP_RESOLUTION_HEIGHT, DESKTOP_RESOLUTION_WIDTH } from 'testUtils'
 import 'whatwg-fetch'
 
 beforeAll(() => {
-
 	Object.defineProperty(window, 'IS_REACT_ACT_ENVIRONMENT', {
 		writable: true,
 		value: true
@@ -63,8 +62,6 @@ beforeEach(() => {
 	window.resizeTo(DESKTOP_RESOLUTION_WIDTH, DESKTOP_RESOLUTION_HEIGHT)
 })
 
-afterEach(() => {
-})
+afterEach(() => {})
 
-afterAll(() => {
-})
+afterAll(() => {})

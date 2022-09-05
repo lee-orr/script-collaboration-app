@@ -1,18 +1,27 @@
 import Head from 'components/Head'
-import LoadingOrError from 'components/LoadingOrError'
 import type { ReactElement } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import Button from "components/Button"
+import Button from 'components/Button'
+import { useNavigate } from 'react-router-dom'
 
 export default function MenuPage(): ReactElement {
-
+	const nav = useNavigate()
 	return (
 		<>
 			<Head title='Script Editor' />
-			<div className='flex flex-col justify-center h-screen items-center gap-4'>
+			<div className='flex h-screen flex-col items-center justify-center gap-4'>
 				<h1 className='text-4xl font-bold'>Script Editor</h1>
-				<Button onClick={() => {}} label="Host Session"/>
-				<Button onClick={() => {}} label="Join Session"/>
+				<Button
+					click={() : void => {
+						nav('/host')
+					}}
+					label='Host Session'
+				/>
+				<Button
+					click={() : void => {
+						nav('/join')
+					}}
+					label='Join Session'
+				/>
 			</div>
 		</>
 	)
