@@ -14,6 +14,7 @@ export default function App(): ReactElement {
 				<Routes>
 					<Route path='/' element={<MenuPage />} />
 					<Route path='/join' element={<Join />} />
+					<Route path='/join/:presetCode' element={<Join />} />
 					<Route path='/host' element={<Host />} />
 				</Routes>
 			</Suspense>

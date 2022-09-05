@@ -2,14 +2,15 @@ import Button from 'components/Button'
 import Input from 'components/Input'
 import type { ReactElement} from 'react';
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const BACK_INDEX = -1;
 
 export default function JoinPage(): ReactElement {
 	const nav = useNavigate()
+	const { presetCode } = useParams<{presetCode: string | undefined}>()
 	const [name, setName] = useState('')
-	const [code, setCode] = useState('')
+	const [code, setCode] = useState(presetCode ?? '')
 	return (
 		<div className='flex h-screen flex-col items-center justify-center gap-4'>
 				<h1 className='text-4xl font-bold'>Join Session</h1>
@@ -19,7 +20,7 @@ export default function JoinPage(): ReactElement {
 				<Input value={name} input={setName} />
 				<Button
 					click={(): void => {
-						nav(`/join/${code}/${name}`)
+						nav(`/session/${code}/${name}`)
 					}}
 					label='Join'
 				/>

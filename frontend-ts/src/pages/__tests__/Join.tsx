@@ -1,6 +1,7 @@
-import { screen } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import JoinPage from 'pages/Join'
 import renderWithProviders from 'testUtils'
+import userEvent from '@testing-library/user-event'
 
 describe('<Join />', () => {
 	it('renders', async () => {
@@ -16,5 +17,15 @@ describe('<Join />', () => {
 		await expect(
 			screen.findByText('Your Display Name:')
 		).resolves.toBeInTheDocument()
+	})
+	it('navigates to correct session page', async () => {
+		renderWithProviders(<JoinPage />)
+		let [code, name] = await screen.findAllByRole('textbox')
+
+		await userEvent.type(code, 'code' )
+		await userEvent.type(name, 'name' )
+		await userEvent.click(await screen.findByText('Join'))
+		
+		expect(window.location.href).toContain('/session/code/name')
 	})
 })
