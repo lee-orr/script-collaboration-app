@@ -11,7 +11,7 @@ export default function Input({
 		<input
 			className='border-b-2 border-b-slate-400 bg-transparent p-1'
 			value={value}
-			onInput={(event) : void=> onInput(event.currentTarget.value)}
+			onInput={(event): void => onInput(event.currentTarget.value)}
 		/>
 	)
 }

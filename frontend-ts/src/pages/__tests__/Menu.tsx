@@ -1,7 +1,6 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import MenuPage from 'pages/Menu'
-import { act } from 'react-dom/test-utils'
 import renderWithProviders, {
 	MOBILE_RESOLUTION_HEIGHT,
 	MOBILE_RESOLUTION_WIDTH
@@ -22,7 +21,7 @@ describe('<MenuPage />', () => {
 		await expect(screen.findByText('Join Session')).resolves.toBeInTheDocument()
 	})
 	it('navigates to join page', async () => {
-			renderWithProviders(<MenuPage />)
+		renderWithProviders(<MenuPage />)
 		await expect(screen.findByText('Join Session')).resolves.toBeInTheDocument()
 		const button = await screen.findByText('Join Session')
 		await userEvent.click(button)

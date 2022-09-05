@@ -11,13 +11,13 @@ export default function MenuPage(): ReactElement {
 			<div className='flex h-screen flex-col items-center justify-center gap-4'>
 				<h1 className='text-4xl font-bold'>Script Editor</h1>
 				<Button
-					click={() : void => {
+					click={(): void => {
 						nav('/host')
 					}}
 					label='Host Session'
 				/>
 				<Button
-					click={() : void => {
+					click={(): void => {
 						nav('/join')
 					}}
 					label='Join Session'
