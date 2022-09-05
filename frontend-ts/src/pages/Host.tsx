@@ -1,6 +1,6 @@
 import Button from 'components/Button'
 import Input from 'components/Input'
-import type { ReactElement } from 'react'
+import type { ChangeEvent, ReactElement } from 'react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { ProjectList } from 'utils/ProjectList'
@@ -14,27 +14,44 @@ export default function HostPage({
 	const [name, setName] = useState('')
 	const [projectList] = useState(projects.getProjectList())
 	const [project, setProject] = useState('')
+	const onButtonClicked = async (): Promise<void> => {
+		const projectExists = projectList.find(p => p.key === project)
+		let currentProject = project
+		if (!projectExists) {
+			currentProject = await projects.createNewProject(project)
+		}
+		nav(`/host/${currentProject}/${name}`)
+	}
+	const onSelected = (event: ChangeEvent<HTMLSelectElement>): void => {
+		setProject(event.currentTarget.value)
+	}
 	return (
 		<div className='flex h-screen flex-col items-center justify-center gap-4'>
 			<h1 className='text-4xl font-bold'>Host Session</h1>
 			<span className=''>Your Display Name:</span>
 			<Input value={name} input={setName} />
 			<span className=''>Choose a project:</span>
-			<select data-testid={'project-selector'} className='border-b-2 border-b-slate-400 bg-transparent p-1 min-w-[200px]' value={project} onChange={(event) => setProject(event.currentTarget.value)}>
-				<option className="text-black" key="" value="">Select a Project...</option>
-				{projectList.map((project) => (<option className="text-black" key={project.key} value={project.key}>{project.name}</option>))}
+			<select
+				data-testid='project-selector'
+				className='min-w-[200px] border-b-2 border-b-slate-400 bg-transparent p-1'
+				value={project}
+				onChange={onSelected}
+			>
+				<option className='text-black' key='' value=''>
+					Select a Project...
+				</option>
+				{projectList.map(p => (
+					<option className='text-black' key={p.key} value={p.key}>
+						{p.name}
+					</option>
+				))}
 			</select>
 			<span className=''>Or Create a new one:</span>
-			<Input value={project} input={setProject}/>
+			<Input value={project} input={setProject} />
 			<Button
 				disabled={name === '' || project === ''}
-				click={async (): Promise<void> => {
-					let projectExists = projectList.find((p) => p.key === project)
-					let currentProject = project;
-					if (!projectExists) {
-						currentProject = await projects.createNewProject(project)
-					}
-					nav(`/host/${currentProject}/${name}`)
+				click={(): void => {
+					void onButtonClicked()
 				}}
 				label='Start Session'
 			/>
