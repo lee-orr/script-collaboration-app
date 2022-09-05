@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Button from "components/Button"
 
-export default function GalleryPage(): ReactElement {
+export default function MenuPage(): ReactElement {
 
 	return (
 		<>
