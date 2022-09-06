@@ -5,9 +5,11 @@ import { FileType } from 'utils/FileList'
 import Button from './Button'
 
 export default function FileListComponent({
-	list
+	list,
+	selectFile
 }: {
 	list: FileList
+	selectFile: (key: string) => void
 }): ReactElement {
 	const [files, setFiles] = useState(list.getCurrentList())
 	list.setCallback(setFiles)
@@ -34,7 +36,9 @@ export default function FileListComponent({
 					<Button
 						key={listing.key}
 						label={listing.name}
-						click={(): void => {}}
+						click={(): void => {
+							selectFile(listing.key)
+						}}
 					/>
 				))}
 			</div>

@@ -10,6 +10,7 @@ describe('<FileList />', () => {
 				list={createInMemoryFileList([
 					{ name: 'Test', key: 'test', type: FileType.Fountain }
 				])}
+				selectFile={(): void => {}}
 			/>
 		)
 
@@ -19,17 +20,38 @@ describe('<FileList />', () => {
 		expect(screen.getByText('Test')).toBeInTheDocument()
 	})
 	it('creates a new script file', async () => {
-		render(<FileList list={createInMemoryFileList([])} />)
+		render(
+			<FileList list={createInMemoryFileList([])} selectFile={(): void => {}} />
+		)
 
 		await userEvent.click(screen.getByText('New Script'))
 
 		expect(screen.getByText('untitled script')).toBeInTheDocument()
 	})
 	it('creates a new markdown file', async () => {
-		render(<FileList list={createInMemoryFileList([])} />)
+		render(
+			<FileList list={createInMemoryFileList([])} selectFile={(): void => {}} />
+		)
 
 		await userEvent.click(screen.getByText('New Markdown'))
 
 		expect(screen.getByText('untitled markdown')).toBeInTheDocument()
+	})
+	it('can select a file', async () => {
+		let selectedFile = ''
+		render(
+			<FileList
+				list={createInMemoryFileList([
+					{ name: 'Test', key: 'test', type: FileType.Fountain }
+				])}
+				selectFile={(selected): void => {
+					selectedFile = selected
+				}}
+			/>
+		)
+
+		await userEvent.click(screen.getByText('Test'))
+
+		expect(selectedFile).toBe('test')
 	})
 })

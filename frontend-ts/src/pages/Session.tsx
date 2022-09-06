@@ -24,7 +24,7 @@ export default function SessionPage({
 			</div>
 			<div className='flex flex-grow flex-row'>
 				<div className='flex w-56 flex-col justify-start border-r-2 border-r-slate-900 bg-slate-800 p-2'>
-					<FileListComponent list={files} />
+					<FileListComponent list={files} selectFile={(): void => {}} />
 				</div>
 				<Split className='split flex flex-grow flex-row'>
 					<div className='p-2'>Test</div>
