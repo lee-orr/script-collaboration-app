@@ -18,27 +18,17 @@ describe('<FileList />', () => {
 		expect(screen.getByText('Upload File')).toBeInTheDocument()
 		expect(screen.getByText('Test')).toBeInTheDocument()
 	})
-    it('creates a new script file', async () => {
-		render(
-			<FileList
-				list={createInMemoryFileList([
-				])}
-			/>
-		)
+	it('creates a new script file', async () => {
+		render(<FileList list={createInMemoryFileList([])} />)
 
-        await userEvent.click(await screen.getByText('New Script'))
+		await userEvent.click(screen.getByText('New Script'))
 
 		expect(screen.getByText('untitled script')).toBeInTheDocument()
 	})
-    it('creates a new markdown file', async () => {
-		render(
-			<FileList
-				list={createInMemoryFileList([
-				])}
-			/>
-		)
+	it('creates a new markdown file', async () => {
+		render(<FileList list={createInMemoryFileList([])} />)
 
-        await userEvent.click(await screen.getByText('New Markdown'))
+		await userEvent.click(screen.getByText('New Markdown'))
 
 		expect(screen.getByText('untitled markdown')).toBeInTheDocument()
 	})
