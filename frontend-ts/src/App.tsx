@@ -23,7 +23,7 @@ export default function App(): ReactElement {
 					/>
 					<Route
 						path='/host/:project/:name'
-						element={<Session isHost={true} />}/>
+						element={<Session isHost />}/>
 					<Route
 						path='/session/:code/:name'
 						element={<Session isHost={false} />}/>
