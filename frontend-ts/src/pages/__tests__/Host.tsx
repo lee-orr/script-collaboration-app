@@ -18,7 +18,7 @@ describe('<Host />', () => {
 			screen.findByText('Start Session')
 		).resolves.toBeInTheDocument()
 	})
-	it('chose hosted folder is disabled until a display name & project is set', async () => {
+	it('start session is disabled until a display name & project is set', async () => {
 		renderWithProviders(<HostPage projects={createInMemoryProjectList([])} />)
 		await expect(screen.findByText('Start Session')).resolves.toBeDisabled()
 
@@ -49,7 +49,6 @@ describe('<Host />', () => {
 		await userEvent.click(await screen.findByText('Start Session'))
 
 		expect(projects.list[0].name).toBe('Project With A Name')
-		expect(projects.list[0].key).toBe('project-with-a-name')
-		expect(window.location.href).toContain('/host/project-with-a-name/name')
+		expect(window.location.href).toContain(`/host/${projects.list[0].key}/name`)
 	})
 })

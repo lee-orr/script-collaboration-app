@@ -1,3 +1,5 @@
+import { GenerateKey } from './KeyGenerator'
+
 export interface Project {
 	name: string
 	key: string
@@ -18,7 +20,7 @@ export function createInMemoryProjectList(
 			return list
 		},
 		async createNewProject(name): Promise<string> {
-			const key = name.toLowerCase().replaceAll(/\s/g, '-')
+			const key = GenerateKey()
 			this.list = [...this.list.filter(p => p.key !== key), { name, key }]
 			return key
 		},

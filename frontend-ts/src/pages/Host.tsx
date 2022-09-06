@@ -14,16 +14,17 @@ export default function HostPage({
 	const [name, setName] = useState('')
 	const [projectList] = useState(projects.getProjectList())
 	const [project, setProject] = useState('')
+	const [projectKey, setProjectKey] = useState('')
+
 	const onButtonClicked = async (): Promise<void> => {
-		const projectExists = projectList.find(p => p.key === project)
-		let currentProject = project
-		if (!projectExists) {
+		let currentProject = projectKey
+		if (projectKey === '') {
 			currentProject = await projects.createNewProject(project)
 		}
 		nav(`/host/${currentProject}/${name}`)
 	}
 	const onSelected = (event: ChangeEvent<HTMLSelectElement>): void => {
-		setProject(event.currentTarget.value)
+		setProjectKey(event.currentTarget.value)
 	}
 	return (
 		<div className='flex h-screen flex-col items-center justify-center gap-4'>
@@ -34,7 +35,7 @@ export default function HostPage({
 			<select
 				data-testid='project-selector'
 				className='min-w-[200px] border-b-2 border-b-slate-400 bg-transparent p-1'
-				value={project}
+				value={projectKey}
 				onChange={onSelected}
 			>
 				<option className='text-black' key='' value=''>
@@ -46,10 +47,16 @@ export default function HostPage({
 					</option>
 				))}
 			</select>
-			<span className=''>Or Create a new one:</span>
-			<Input value={project} input={setProject} />
+			{projectKey === '' ? (
+				<>
+					<span className=''>Or Create a new one:</span>
+					<Input value={project} input={setProject} />
+				</>
+			) : (
+				''
+			)}
 			<Button
-				disabled={name === '' || project === ''}
+				disabled={name === '' || (projectKey === '' && project === '')}
 				click={(): void => {
 					void onButtonClicked()
 				}}

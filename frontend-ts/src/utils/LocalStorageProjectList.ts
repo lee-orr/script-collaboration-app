@@ -1,3 +1,4 @@
+import { GenerateKey } from './KeyGenerator'
 import type { Project, ProjectList } from './ProjectList'
 
 const item = localStorage.getItem('projects')
@@ -11,7 +12,7 @@ export const LocalStorageProjectList: ProjectList & {
 		return this.projectList
 	},
 	async createNewProject(name: string): Promise<string> {
-		const key = name.toLowerCase().replaceAll(/\s/g, '-')
+		const key = GenerateKey()
 		this.projectList = [
 			...this.projectList.filter(p => p.key !== key),
 			{ name, key }

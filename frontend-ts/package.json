@@ -33,7 +33,8 @@
 		"y-webrtc": "10.2.3",
 		"slate": "0.82.1",
 		"slate-react": "0.82.1",
-		"@slate-yjs/core": "0.2.8"
+		"@slate-yjs/core": "0.2.8",
+		"uuid": "9.0.0"
 	},
 	"devDependencies": {
 		"@nabla/vite-plugin-eslint": "1.4.1",
@@ -43,6 +44,7 @@
 		"@testing-library/jest-dom": "5.16.5",
 		"@testing-library/react": "13.3.0",
 		"@testing-library/user-event": "14.4.3",
+		"@types/uuid": "8.3.4",
 		"@types/css-mediaquery": "0.1.1",
 		"@types/react": "18.0.18",
 		"@types/react-dom": "18.0.6",

@@ -2,12 +2,17 @@ import LoadingOrError from 'components/LoadingOrError'
 import type { ReactElement } from 'react'
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { createInMemoryFileList, FileType } from 'utils/FileList'
 import { LocalStorageProjectList } from 'utils/LocalStorageProjectList'
 
 const MenuPage = lazy(async () => import('pages/Menu'))
 const Join = lazy(async () => import('pages/Join'))
 const Host = lazy(async () => import('pages/Host'))
 const Session = lazy(async () => import('pages/Session'))
+
+const testFileList = createInMemoryFileList([
+	{ name: 'test', key: 'test', type: FileType.Fountain }
+])
 
 export default function App(): ReactElement {
 	return (
@@ -23,10 +28,12 @@ export default function App(): ReactElement {
 					/>
 					<Route
 						path='/host/:project/:name'
-						element={<Session isHost />}/>
+						element={<Session isHost files={testFileList} />}
+					/>
 					<Route
 						path='/session/:code/:name'
-						element={<Session isHost={false} />}/>
+						element={<Session isHost={false} files={testFileList} />}
+					/>
 				</Routes>
 			</Suspense>
 		</BrowserRouter>
