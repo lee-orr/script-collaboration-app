@@ -35,6 +35,7 @@
 		"slate-react": "0.82.1",
 		"@slate-yjs/core": "0.2.8",
 		"uuid": "9.0.0",
+		"lib0": "^0.2.35",
 		"fountain": "./fountain/pkg"
 	},
 	"devDependencies": {

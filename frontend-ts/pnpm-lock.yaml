@@ -41,6 +41,7 @@ specifiers:
   fountain: ./fountain/pkg
   husky: 8.0.1
   jsdom: 20.0.0
+  lib0: ^0.2.35
   lint-staged: 13.0.3
   msw: 0.46.1
   npm-run-all: 4.1.5
@@ -78,6 +79,7 @@ dependencies:
   '@slate-yjs/core': 0.2.8_slate@0.82.1+yjs@13.5.41
   '@tanstack/react-query': 4.2.3_biqbaboplfbrettd7655fr4n2y
   fountain: link:fountain/pkg
+  lib0: 0.2.52
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
   react-router-dom: 6.3.0_biqbaboplfbrettd7655fr4n2y

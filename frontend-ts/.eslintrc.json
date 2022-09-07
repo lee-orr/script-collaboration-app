@@ -22,6 +22,7 @@
 		"plugin:react-prefer-function-component/recommended",
 		"prettier"
 	],
+	"ignorePatterns": ["fountain/**"],
 	"rules": {
 		"no-dupe-else-if": "error",
 		"no-promise-executor-return": "error",
@@ -50,6 +51,7 @@
 			}
 		],
 		"no-void": "off",
+		
 
 		"@typescript-eslint/padding-line-between-statements": "off",
 		"@typescript-eslint/prefer-enum-initializers": "off",
