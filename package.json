@@ -1,8 +1,7 @@
 {
     "scripts": {
-        "backend": "cd ./backend && npx @cloudflare/wrangler dev",
-        "setup": "rustup target add wasm32-unknown-unknown && cargo install trunk && cd frontend && npm install",
-        "frontend": "cd ./frontend && npm run dev",
-        "frontend-prod": "cd ./frontend && npm run prod"
+        "setup": "rustup target add wasm32-unknown-unknown && cargo install wasm-pack && cargo install rsw && cargo install trunk && cd frontend && npm install",
+        "frontend": "cd ./frontend-ts && pnpm dev",
+        "frontend-prod": "cd ./frontend-ts && pnpm build"
     }
 }

@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { createInMemoryFileList, FileType } from 'utils/FileList'
 import { LocalStorageProjectList } from 'utils/LocalStorageProjectList'
+import { greet } from 'fountain/fountain'
 
 const MenuPage = lazy(async () => import('pages/Menu'))
 const Join = lazy(async () => import('pages/Join'))
@@ -15,6 +16,7 @@ const testFileList = createInMemoryFileList([
 ])
 
 export default function App(): ReactElement {
+	greet()
 	return (
 		<BrowserRouter>
 			<Suspense fallback={<LoadingOrError />}>

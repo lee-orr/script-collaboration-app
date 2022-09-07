@@ -34,7 +34,8 @@
 		"slate": "0.82.1",
 		"slate-react": "0.82.1",
 		"@slate-yjs/core": "0.2.8",
-		"uuid": "9.0.0"
+		"uuid": "9.0.0",
+		"fountain": "./fountain/pkg"
 	},
 	"devDependencies": {
 		"@nabla/vite-plugin-eslint": "1.4.1",
@@ -92,7 +93,9 @@
 		"vitest": "0.22.1",
 		"whatwg-fetch": "3.6.2",
 		"workbox-build": "6.5.4",
-		"workbox-window": "6.5.4"
+		"workbox-window": "6.5.4",
+		"vite-plugin-wasm": "2.1.0",
+		"vite-plugin-top-level-await": "1.1.1"
 	},
 	"browserslist": {
 		"production": "Edge >= 18, Firefox >= 60, Chrome >= 61, Safari >= 11, Opera >= 48",
