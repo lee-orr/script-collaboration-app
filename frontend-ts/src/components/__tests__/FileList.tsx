@@ -38,12 +38,10 @@ describe('<FileList />', () => {
 		expect(screen.getByText('untitled markdown')).toBeInTheDocument()
 	})
 	it('can select a file', async () => {
-		let selectedFile = ''
+		let selectedFile = { name: 'Test', key: 'test', type: FileType.Fountain }
 		render(
 			<FileList
-				list={createInMemoryFileList([
-					{ name: 'Test', key: 'test', type: FileType.Fountain }
-				])}
+				list={createInMemoryFileList([selectedFile])}
 				selectFile={(selected): void => {
 					selectedFile = selected
 				}}
@@ -52,6 +50,6 @@ describe('<FileList />', () => {
 
 		await userEvent.click(screen.getByText('Test'))
 
-		expect(selectedFile).toBe('test')
+		expect(selectedFile.key).toBe('test')
 	})
 })

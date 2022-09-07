@@ -16,6 +16,7 @@ export interface FileList {
 	getCurrentList: () => FileListing[]
 	createFile: (name: string, type: FileType) => Promise<string>
 	deleteFile: (key: string) => Promise<void>
+	renameFile: (key: string, name: string) => Promise<void>
 }
 
 export function createInMemoryFileList(
@@ -43,6 +44,15 @@ export function createInMemoryFileList(
 		},
 		setCallback(callback): void {
 			this.update = callback
+		},
+		async renameFile(key, name): Promise<void> {
+			this.list = this.list.map(listing => {
+				if (listing.key === key) {
+					return { ...listing, name }
+				}
+				return listing
+			})
+			if (this.update) this.update(this.list)
 		}
 	}
 }

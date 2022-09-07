@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react'
 import { useState } from 'react'
-import type { FileList } from 'utils/FileList'
+import type { FileList, FileListing } from 'utils/FileList'
 import { FileType } from 'utils/FileList'
 import Button from './Button'
 
@@ -9,7 +9,7 @@ export default function FileListComponent({
 	selectFile
 }: {
 	list: FileList
-	selectFile: (key: string) => void
+	selectFile: (key: FileListing) => void
 }): ReactElement {
 	const [files, setFiles] = useState(list.getCurrentList())
 	list.setCallback(setFiles)
@@ -37,7 +37,7 @@ export default function FileListComponent({
 						key={listing.key}
 						label={listing.name}
 						click={(): void => {
-							selectFile(listing.key)
+							selectFile(listing)
 						}}
 					/>
 				))}
