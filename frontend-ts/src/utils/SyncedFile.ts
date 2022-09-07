@@ -1,12 +1,12 @@
 import { slateNodesToInsertDelta } from '@slate-yjs/core';
 import * as Y from 'yjs';
 
-export interface File {
+export interface SyncedFile {
     connect(): { id: number, name: Y.Text, content: Y.XmlText },
     disconnect(id: number): void,
 }
 
-export function createInMemoryFile(name: string, initialContent: string): File {
+export function createInMemoryFile(name: string, initialContent: string): SyncedFile {
     const mainDoc = new Y.Doc();
     const nameType = mainDoc.getText('name');
     const contentType = mainDoc.get('content', Y.XmlText) as Y.XmlText;

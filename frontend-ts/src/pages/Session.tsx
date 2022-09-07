@@ -5,6 +5,9 @@ import Split from 'react-split'
 import FileListComponent from 'components/FileList'
 import type { FileList } from 'utils/FileList'
 import Editor from './Editor'
+import { createInMemoryFile } from 'utils/SyncedFile';
+
+const initialFile = createInMemoryFile("test", "some content")
 
 export default function SessionPage({
 	isHost,
@@ -41,7 +44,7 @@ export default function SessionPage({
 						openFiles.map(f => (
 								<Editor
 									key={f}
-									file={f}
+									file={initialFile}
 									closeFile={(): void => {
 										const open = openFiles.filter(key => key !== f)
 										setOpenFiles(open)

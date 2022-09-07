@@ -7,7 +7,8 @@ import type { ReactEditor} from 'slate-react';
 import { Editable, withReact , Slate } from 'slate-react'
 import { withYjs, slateNodesToInsertDelta, YjsEditor } from '@slate-yjs/core'
 import * as Y from 'yjs'
-import { createInMemoryFile } from 'utils/File';
+import { createInMemoryFile, SyncedFile } from 'utils/SyncedFile';
+import Input from 'components/Input';
 
 type RawText = {type: 'raw', children: CustomText[]}
 type Paragraph = { type: 'paragraph'; children: CustomText[] };
@@ -23,25 +24,27 @@ declare module 'slate' {
 	}
 }
 
-const initialFile = createInMemoryFile("test", "some content")
-
 export default function Editor({
 	file,
 	closeFile
 }: {
-	file: string
+	file: SyncedFile
 	closeFile: () => void
 }): ReactElement {
+  const [nameString, setNameString] = useState("")
   const [id, name, content] = useMemo(() => {
-    const { id, name, content} = initialFile.connect()
+    const { id, name, content} = file.connect()
+	setNameString(name.toString())
     return [id, name, content]
   }, [])
+
 	const editor = useMemo(
 		() => {
       return withReact(withYjs(createEditor(), content))
     },
 		[]
 	)
+
 	const [value, onSetValue] = useState([])
 
 	useEffect(() => {
@@ -49,10 +52,21 @@ export default function Editor({
 		return () => YjsEditor.disconnect(editor)
 	}, [editor])
 
+	useEffect(() => {
+		const callback = () => {
+			setNameString(name.toString())
+		}
+		name.observe(callback)
+		return () => name.unobserve(callback)
+	}, [name])
+
 	return (
-		<div className='p-2'>
-			<div>
-				{file} <Button label='X' click={closeFile} />
+		<div className='flex flex-col justify-start items-stretch'>
+			<div className="p-2 flex flex-row justify-between bg-slate-800 border-b-2 border-b-slate-900 items-center">
+				<Input value={nameString} input={(value) => {
+					name.delete(0, name.length)
+					name.insert(0, value)
+				}}  /> <Button label='X' click={closeFile} />
 			</div>
 			<Slate editor={editor} value={value}>
 				<Editable />
