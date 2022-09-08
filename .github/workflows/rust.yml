@@ -29,6 +29,6 @@ jobs:
       run: cd ./frontend-ts && npm build
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: frontend-ts/dist
+      with:
+        folder: frontend-ts/dist
       
