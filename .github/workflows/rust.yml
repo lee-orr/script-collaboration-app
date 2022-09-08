@@ -26,5 +26,9 @@ jobs:
         npm install
         npm run test
     - name: Build Frontend
-      run: cd ./frontend-ts && pnpm build
+      run: cd ./frontend-ts && npm build
+    - name: Deploy
+      uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: frontend-ts/dist
       
