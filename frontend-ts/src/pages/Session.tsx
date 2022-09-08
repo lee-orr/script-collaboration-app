@@ -15,6 +15,11 @@ import { createPeerNetworkAdapter } from 'utils/NetworkAdapter'
 import { Message } from 'utils/Message'
 import createHostFileList from 'utils/HostFileList'
 import createNetworkedFileList from 'utils/NetworkedFileList'
+import { createHostSyncedFile, setHostAdapter } from 'utils/HostSyncedFile'
+import {
+	getNetworkSyncedFile,
+	setClientAdapter
+} from 'utils/NetworkedSyncedFile'
 
 const adapter = createPeerNetworkAdapter<Message>()
 
@@ -37,6 +42,7 @@ export default function SessionPage({
 	const linkCode = useMemo(() => {
 		if (isHost) {
 			setConnected(true)
+			setHostAdapter(adapter, project ?? "", getIdbFile)
 			return adapter.startHost()
 		} else if (code) {
 			adapter.connectionEventListener((connection, event, error) => {
@@ -48,9 +54,10 @@ export default function SessionPage({
 					setConnected(false)
 				}
 			})
+			setClientAdapter(adapter)
 			return adapter.startClient(code)
 		}
-	}, [isHost, code])
+	}, [isHost, code, project])
 
 	void useMemo(async () => {
 		if (!connected) return
@@ -64,10 +71,12 @@ export default function SessionPage({
 		}
 	}, [project, connected])
 
-
-
 	if (connected !== true) {
-		return <LoadingOrError error={connected instanceof Error ? connected : undefined}/>
+		return (
+			<LoadingOrError
+				error={connected instanceof Error ? connected : undefined}
+			/>
+		)
 	}
 
 	if (!files) {
@@ -83,7 +92,20 @@ export default function SessionPage({
 			<div className='flex flex-row justify-center bg-slate-900 p-2'>
 				{isHost ? 'Hosting' : 'Joining'}, {name} @{' '}
 				{project ?? code ?? 'No code or project'}
-				&nbsp;{isHost ? <a className="text-blue-200" target="_blank" href={`${window.location.toString().split('/host')[0]}/join/${linkCode}`}>{linkCode}</a> : ''}
+				&nbsp;
+				{isHost ? (
+					<a
+						className='text-blue-200'
+						target='_blank'
+						href={`${
+							window.location.toString().split('/host')[0]
+						}/join/${linkCode}`}
+					>
+						{linkCode}
+					</a>
+				) : (
+					''
+				)}
 			</div>
 			<div className='flex flex-grow flex-row'>
 				<div className='flex w-56 flex-col justify-start border-r-2 border-r-slate-900 bg-slate-800 p-2'>
@@ -96,7 +118,20 @@ export default function SessionPage({
 								setOpenFiles(open)
 							}
 							if (project) {
-								void getIdbFile(file.key, project).then(value => {
+								void createHostSyncedFile(file.key).then(
+									value => {
+										const open = {
+											...openFiles,
+											[file.key]: {
+												listing: file,
+												file: value
+											}
+										}
+										setOpenFiles(open)
+									}
+								)
+							} else {
+								void getNetworkSyncedFile(file.key).then(value => {
 									const open = {
 										...openFiles,
 										[file.key]: {
@@ -106,16 +141,6 @@ export default function SessionPage({
 									}
 									setOpenFiles(open)
 								})
-							} else {
-								const value = createInMemoryFile('file', '')
-								const open = {
-									...openFiles,
-									[file.key]: {
-										listing: file,
-										file: value
-									}
-								}
-								setOpenFiles(open)
 							}
 						}}
 					/>

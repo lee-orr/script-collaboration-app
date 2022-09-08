@@ -4,6 +4,8 @@ import * as Y from 'yjs'
 export interface SyncedFile {
 	connect: () => { id: number; content: Y.XmlText }
 	disconnect: (id: number) => void
+	doc: () => Y.Doc
+	updateAll: (update: Uint8Array) => void
 }
 
 export function createInMemoryFile(
@@ -21,6 +23,9 @@ export function createInMemoryFile(
 	let syncedDocuments: Record<string, Y.Doc> = {}
 
 	return {
+		doc() {
+			return mainDocument
+		},
 		connect(): { id: number; content: Y.XmlText } {
 			const document = new Y.Doc()
 			const state = Y.encodeStateAsUpdate(mainDocument)
@@ -39,6 +44,13 @@ export function createInMemoryFile(
 			return {
 				id: document.clientID,
 				content: document.get('content', Y.XmlText) as Y.XmlText
+			}
+		},
+		updateAll(update) {
+			Y.applyUpdate(mainDocument, update)
+			for (const index of Object.keys(syncedDocuments)) {
+				const target = syncedDocuments[index]
+				Y.applyUpdate(target, update)
 			}
 		},
 		disconnect(id): void {

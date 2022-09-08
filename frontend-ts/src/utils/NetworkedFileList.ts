@@ -1,36 +1,37 @@
-import type { Message } from "./Message";
-import type { NetworkAdapter } from "./NetworkAdapter";
-import type { FileList, FileListing } from "./FileList"; 
-import { GenerateKey } from "./KeyGenerator";
+import type { Message } from './Message'
+import type { NetworkAdapter } from './NetworkAdapter'
+import type { FileList, FileListing } from './FileList'
+import { GenerateKey } from './KeyGenerator'
 
-export default function createNetworkedFileList(adapter: NetworkAdapter<Message>): FileList {
-	let listings : FileListing[] = []
+export default function createNetworkedFileList(
+	adapter: NetworkAdapter<Message>
+): FileList {
+	let listings: FileListing[] = []
 	let update: ((files: FileListing[]) => void) | undefined
-    
 
-    adapter.setListener((message) => {
-        if (message.type === "CurrentListResult") {
-            listings = message.listings
-            if (update) update(listings)
-        }
-    })
+	adapter.setListener(message => {
+		if (message.type === 'CurrentListResult') {
+			listings = message.listings
+			if (update) update(listings)
+		}
+	})
 
-    adapter.sendMessage({type: "GetCurrentList"})
+	adapter.sendMessage({ type: 'GetCurrentList' })
 
 	return {
 		setCallback(callback): void {
 			update = callback
 		},
 		async createFile(name, type): Promise<string> {
-            const key = GenerateKey()
+			const key = GenerateKey()
 			const listing = { name, key, type }
 			listings = [...listings, listing]
-            adapter.sendMessage({
-                type: "CreateFile",
-                name,
-                fileType: type,
-                key
-            })
+			adapter.sendMessage({
+				type: 'CreateFile',
+				name,
+				fileType: type,
+				key
+			})
 			if (update) update(listings)
 			return key
 		},
@@ -38,10 +39,10 @@ export default function createNetworkedFileList(adapter: NetworkAdapter<Message>
 			return listings
 		},
 		async deleteFile(key): Promise<void> {
-            adapter.sendMessage({
-                type: "DeleteFile",
-                key
-            })
+			adapter.sendMessage({
+				type: 'DeleteFile',
+				key
+			})
 			listings = listings.filter(p => p.key !== key)
 			if (update) update(listings)
 		},
@@ -54,11 +55,11 @@ export default function createNetworkedFileList(adapter: NetworkAdapter<Message>
 				}
 				return listing
 			})
-            adapter.sendMessage({
-                type: "RenameFile",
-                name,
-                key
-            })
+			adapter.sendMessage({
+				type: 'RenameFile',
+				name,
+				key
+			})
 			/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 			if (current && update) update(listings)
 		}

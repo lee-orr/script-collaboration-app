@@ -37,7 +37,8 @@
 		"uuid": "9.0.0",
 		"fountain": "./fountain/pkg",
 		"idb": "7.0.2",
-		"peerjs": "1.4.7"
+		"peerjs": "1.4.7",
+		"js-base64": "3.7.2"
 	},
 	"devDependencies": {
 		"@nabla/vite-plugin-eslint": "1.4.1",

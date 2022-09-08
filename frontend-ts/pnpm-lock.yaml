@@ -41,6 +41,7 @@ specifiers:
   fountain: ./fountain/pkg
   husky: 8.0.1
   idb: 7.0.2
+  js-base64: 3.7.2
   jsdom: 20.0.0
   lint-staged: 13.0.3
   msw: 0.46.1
@@ -81,6 +82,7 @@ dependencies:
   '@tanstack/react-query': 4.2.3_biqbaboplfbrettd7655fr4n2y
   fountain: link:fountain/pkg
   idb: 7.0.2
+  js-base64: 3.7.2
   peerjs: 1.4.7
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
@@ -5433,6 +5435,10 @@ packages:
       '@sideway/formula': 3.0.0
       '@sideway/pinpoint': 2.0.0
     dev: true
+
+  /js-base64/3.7.2:
+    resolution: {integrity: sha512-NnRs6dsyqUXejqk/yv2aiXlAvOs56sLkX6nUdeaNezI5LFFLlsZjOThmwnrcwh5ZZRwZlCMnVAY3CvhIhoVEKQ==}
+    dev: false
 
   /js-levenshtein/1.1.6:
     resolution: {integrity: sha512-X2BB11YZtrRqY4EnQcLX5Rh373zbK4alC1FW7D7MBhL2gtcC17cTnr6DmfHZeS0s2rTHjUTMMHfG7gO8SSdw+g==}

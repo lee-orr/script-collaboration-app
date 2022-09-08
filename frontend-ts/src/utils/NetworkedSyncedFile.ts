@@ -1,30 +1,46 @@
-import getDatabase from './Idb'
 import type { SyncedFile } from './SyncedFile'
 import * as Y from 'yjs'
 import { slateNodesToInsertDelta } from '@slate-yjs/core'
+import { Message } from './Message'
+import { NetworkAdapter } from './NetworkAdapter'
+import { fromUint8Array, toUint8Array } from 'js-base64'
 
 const files: Record<string, Promise<SyncedFile>> = {}
 
-const SAVE_DELAY = 2000
+const SAVE_DELAY = 200
 
-async function internalGetIdbFile(
-	key: string,
-	project: string
-): Promise<SyncedFile> {
-	const database = await getDatabase(project)
+let adapter: NetworkAdapter<Message> | undefined = undefined
 
-	const initialContent = await database.get('fileContent', key)
+export function setClientAdapter(updatedAdapter: NetworkAdapter<Message>) {
+	adapter = updatedAdapter
+	adapter.setListener(async message => {
+		switch (message.type) {
+			case 'FullFileState':
+				{
+					const document = files[message.key]
+					if (document) {
+						document.then((file) => file.updateAll(toUint8Array(message.update)))
+					}
+				}
+				break
+			case 'FileContentUpdated':
+				{
+					const document = files[message.key]
+					if (document) {
+						document.then((file) => file.updateAll(toUint8Array(message.update)))
+					}
+				}
+				break
+		}
+	})
+}
 
+async function internalGetNetworkSyncedFile(key: string): Promise<SyncedFile> {
+	adapter?.sendMessage({
+		type: 'RequestFileState',
+		key
+	})
 	const mainDocument = new Y.Doc()
-
-	if (initialContent && initialContent.byteLength > 0) {
-		Y.applyUpdate(mainDocument, initialContent)
-	} else {
-		const contentType = mainDocument.get('content', Y.XmlText) as Y.XmlText
-		contentType.applyDelta(
-			slateNodesToInsertDelta([{ type: 'raw', children: [{ text: 'test' }] }])
-		)
-	}
 
 	let syncedDocuments: Record<string, Y.Doc> = {}
 
@@ -43,8 +59,12 @@ async function internalGetIdbFile(
 					clearTimeout(timeout)
 				}
 				timeout = setTimeout(() => {
-					const snapshot = Y.encodeStateAsUpdate(mainDocument)
-					void database.put('fileContent', snapshot, key)
+					const snapshot = fromUint8Array(Y.encodeStateAsUpdate(mainDocument))
+					adapter?.sendMessage({
+						type: 'FileContentUpdated',
+						key,
+						update: snapshot
+					})
 				}, SAVE_DELAY) as unknown as number
 				Y.applyUpdate(mainDocument, update)
 				for (const index of Object.keys(syncedDocuments)) {
@@ -63,8 +83,12 @@ async function internalGetIdbFile(
 				clearTimeout(timeout)
 			}
 			timeout = setTimeout(() => {
-				const snapshot = Y.encodeStateAsUpdate(mainDocument)
-				void database.put('fileContent', snapshot, key)
+				const snapshot = fromUint8Array(Y.encodeStateAsUpdate(mainDocument))
+				adapter?.sendMessage({
+					type: 'FileContentUpdated',
+					key,
+					update: snapshot
+				})
 			}, SAVE_DELAY) as unknown as number
 			Y.applyUpdate(mainDocument, update)
 			for (const index of Object.keys(syncedDocuments)) {
@@ -89,11 +113,8 @@ async function internalGetIdbFile(
 	}
 }
 
-export default async function getIdbFile(
-	key: string,
-	project: string
-): Promise<SyncedFile> {
+export async function getNetworkSyncedFile(key: string): Promise<SyncedFile> {
 	if (key in files) return files[key]
-	files[key] = internalGetIdbFile(key, project)
+	files[key] = internalGetNetworkSyncedFile(key)
 	return files[key]
 }
