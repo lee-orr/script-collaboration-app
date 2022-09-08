@@ -22,7 +22,7 @@ jobs:
         npm install
         npm run test
     - name: Build Frontend
-      run: cd ./frontend-ts && npm run build
+      run: cd ./frontend-ts && npm run build -- --base=/script-collaboration-app/
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@v4
       with:
