@@ -14,7 +14,7 @@ export interface FileListing {
 export interface FileList {
 	setCallback: (callback: (files: FileListing[]) => void) => void
 	getCurrentList: () => FileListing[]
-	createFile: (name: string, type: FileType) => Promise<string>
+	createFile: (name: string, type: FileType, key?: string) => Promise<string>
 	deleteFile: (key: string) => Promise<void>
 	renameFile: (key: string, name: string) => Promise<void>
 }

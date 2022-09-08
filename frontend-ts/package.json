@@ -36,7 +36,8 @@
 		"@slate-yjs/core": "0.2.8",
 		"uuid": "9.0.0",
 		"fountain": "./fountain/pkg",
-		"idb": "7.0.2"
+		"idb": "7.0.2",
+		"peerjs": "1.4.7"
 	},
 	"devDependencies": {
 		"@nabla/vite-plugin-eslint": "1.4.1",

@@ -11,6 +11,12 @@ import { createInMemoryFile } from 'utils/SyncedFile'
 import LoadingOrError from 'components/LoadingOrError'
 import createIdbFileList from 'utils/IdbFileList'
 import getIdbFile from 'utils/IdbSyncedFile'
+import { createPeerNetworkAdapter } from 'utils/NetworkAdapter'
+import { Message } from 'utils/Message'
+import createHostFileList from 'utils/HostFileList'
+import createNetworkedFileList from 'utils/NetworkedFileList'
+
+const adapter = createPeerNetworkAdapter<Message>()
 
 export default function SessionPage({
 	isHost
@@ -26,16 +32,43 @@ export default function SessionPage({
 	const [openFiles, setOpenFiles] = useState<
 		Record<string, boolean | { listing: FileListing; file: SyncedFile }>
 	>({})
+	const [connected, setConnected] = useState<boolean | Error>(false)
+
+	const linkCode = useMemo(() => {
+		if (isHost) {
+			setConnected(true)
+			return adapter.startHost()
+		} else if (code) {
+			adapter.connectionEventListener((connection, event, error) => {
+				if (event === 'error') {
+					setConnected(error ?? new Error('Unknown Error'))
+				} else if (event === 'open') {
+					setConnected(true)
+				} else {
+					setConnected(false)
+				}
+			})
+			return adapter.startClient(code)
+		}
+	}, [isHost, code])
 
 	void useMemo(async () => {
+		if (!connected) return
 		if (project) {
-			const fileList = await createIdbFileList(project)
+			const localFileList = await createIdbFileList(project)
+			const fileList = createHostFileList(adapter, localFileList)
 			setFiles(fileList)
 		} else {
-			const fileList = createInMemoryFileList([])
+			const fileList = createNetworkedFileList(adapter)
 			setFiles(fileList)
 		}
-	}, [project])
+	}, [project, connected])
+
+
+
+	if (connected !== true) {
+		return <LoadingOrError error={connected instanceof Error ? connected : undefined}/>
+	}
 
 	if (!files) {
 		return <LoadingOrError />
@@ -50,6 +83,7 @@ export default function SessionPage({
 			<div className='flex flex-row justify-center bg-slate-900 p-2'>
 				{isHost ? 'Hosting' : 'Joining'}, {name} @{' '}
 				{project ?? code ?? 'No code or project'}
+				&nbsp;{isHost ? <a className="text-blue-200" target="_blank" href={`${window.location.toString().split('/host')[0]}/join/${linkCode}`}>{linkCode}</a> : ''}
 			</div>
 			<div className='flex flex-grow flex-row'>
 				<div className='flex w-56 flex-col justify-start border-r-2 border-r-slate-900 bg-slate-800 p-2'>
