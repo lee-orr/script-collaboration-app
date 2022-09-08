@@ -16,10 +16,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: setup rust
-      run: npm run setup
-    - name: run rust tests
-      run: cd ./frontend-ts/fountain && cargo test && cd ..
     - name: run js tests
       run: |
         cd ./frontend-ts
