@@ -11,7 +11,7 @@ const Session = lazy(async () => import('pages/Session'))
 
 export default function App(): ReactElement {
 	return (
-		<BrowserRouter>
+		<BrowserRouter basename={import.meta.env.BASE_URL}>
 			<Suspense fallback={<LoadingOrError />}>
 				<Routes>
 					<Route path='/' element={<MenuPage />} />
