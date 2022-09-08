@@ -4,15 +4,13 @@ import { useParams } from 'react-router-dom'
 import Split from 'react-split'
 import FileListComponent from 'components/FileList'
 import type { FileList, FileListing } from 'utils/FileList'
-import { createInMemoryFileList } from 'utils/FileList'
 import Editor from './Editor'
 import type { SyncedFile } from 'utils/SyncedFile'
-import { createInMemoryFile } from 'utils/SyncedFile'
 import LoadingOrError from 'components/LoadingOrError'
 import createIdbFileList from 'utils/IdbFileList'
 import getIdbFile from 'utils/IdbSyncedFile'
 import { createPeerNetworkAdapter } from 'utils/NetworkAdapter'
-import { Message } from 'utils/Message'
+import type { Message } from 'utils/Message'
 import createHostFileList from 'utils/HostFileList'
 import createNetworkedFileList from 'utils/NetworkedFileList'
 import { createHostSyncedFile, setHostAdapter } from 'utils/HostSyncedFile'
@@ -37,14 +35,15 @@ export default function SessionPage({
 	const [openFiles, setOpenFiles] = useState<
 		Record<string, boolean | { listing: FileListing; file: SyncedFile }>
 	>({})
-	const [connected, setConnected] = useState<boolean | Error>(false)
+	const [connected, setConnected] = useState<Error | boolean>(false)
 
 	const linkCode = useMemo(() => {
 		if (isHost) {
 			setConnected(true)
-			setHostAdapter(adapter, project ?? "", getIdbFile)
+			setHostAdapter(adapter, project ?? '', getIdbFile)
 			return adapter.startHost()
-		} else if (code) {
+		}
+		if (code) {
 			adapter.connectionEventListener((connection, event, error) => {
 				if (event === 'error') {
 					setConnected(error ?? new Error('Unknown Error'))
@@ -57,6 +56,7 @@ export default function SessionPage({
 			setClientAdapter(adapter)
 			return adapter.startClient(code)
 		}
+		return ''
 	}, [isHost, code, project])
 
 	void useMemo(async () => {
@@ -89,20 +89,24 @@ export default function SessionPage({
 
 	return (
 		<div className='flex h-screen flex-col items-stretch justify-start'>
-			<div className='flex flex-row justify-center bg-slate-900 p-2'>
-				{isHost ? 'Hosting' : 'Joining'}, {name} @{' '}
-				{project ?? code ?? 'No code or project'}
+			<div className='flex flex-row justify-between bg-slate-900 p-2'>
+				<span>{isHost ? 'Hosting' : 'Joining'}</span>{' '}
+				<span className='flex-grow text-center'>{name}</span>
 				&nbsp;
 				{isHost ? (
-					<a
-						className='text-blue-200'
-						target='_blank'
-						href={`${
-							window.location.toString().split('/host')[0]
-						}/join/${linkCode}`}
-					>
-						{linkCode}
-					</a>
+					<span>
+						Share Link:&nbsp;
+						<a
+							className='text-blue-200'
+							target='_blank'
+							href={`${
+								window.location.toString().split('/host')[0]
+							}/join/${linkCode}`}
+							rel='noreferrer'
+						>
+							{linkCode}
+						</a>
+					</span>
 				) : (
 					''
 				)}
@@ -118,18 +122,16 @@ export default function SessionPage({
 								setOpenFiles(open)
 							}
 							if (project) {
-								void createHostSyncedFile(file.key).then(
-									value => {
-										const open = {
-											...openFiles,
-											[file.key]: {
-												listing: file,
-												file: value
-											}
+								void createHostSyncedFile(file.key).then(value => {
+									const open = {
+										...openFiles,
+										[file.key]: {
+											listing: file,
+											file: value
 										}
-										setOpenFiles(open)
 									}
-								)
+									setOpenFiles(open)
+								})
 							} else {
 								void getNetworkSyncedFile(file.key).then(value => {
 									const open = {

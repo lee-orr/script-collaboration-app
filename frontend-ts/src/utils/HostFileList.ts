@@ -23,6 +23,8 @@ export default function createHostFileList(
 			case 'DeleteFile':
 				void local.deleteFile(message.key)
 				break
+			default:
+				break
 		}
 	})
 
@@ -40,10 +42,10 @@ export default function createHostFileList(
 			return local.getCurrentList()
 		},
 		async deleteFile(key): Promise<void> {
-			local.deleteFile(key)
+			void local.deleteFile(key)
 		},
 		async renameFile(key, name): Promise<void> {
-			local.renameFile(key, name)
+			void local.renameFile(key, name)
 		}
 	}
 }

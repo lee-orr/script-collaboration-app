@@ -23,7 +23,7 @@ export function createInMemoryFile(
 	let syncedDocuments: Record<string, Y.Doc> = {}
 
 	return {
-		doc() {
+		doc(): Y.Doc {
 			return mainDocument
 		},
 		connect(): { id: number; content: Y.XmlText } {
@@ -46,7 +46,7 @@ export function createInMemoryFile(
 				content: document.get('content', Y.XmlText) as Y.XmlText
 			}
 		},
-		updateAll(update) {
+		updateAll(update): void {
 			Y.applyUpdate(mainDocument, update)
 			for (const index of Object.keys(syncedDocuments)) {
 				const target = syncedDocuments[index]

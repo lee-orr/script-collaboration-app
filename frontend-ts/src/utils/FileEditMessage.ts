@@ -17,5 +17,5 @@ export interface FullFileState {
 
 export type FileEditMessage =
 	| FileContentUpdated
-	| RequestFileState
 	| FullFileState
+	| RequestFileState

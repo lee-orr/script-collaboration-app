@@ -31,7 +31,7 @@ async function internalGetIdbFile(
 	let timeout: number | false = false
 
 	return {
-		doc() {
+		doc(): Y.Doc {
 			return mainDocument
 		},
 		connect(): { id: number; content: Y.XmlText } {
@@ -58,7 +58,7 @@ async function internalGetIdbFile(
 				content: document.get('content', Y.XmlText) as Y.XmlText
 			}
 		},
-		updateAll(update) {
+		updateAll(update): void {
 			if (timeout) {
 				clearTimeout(timeout)
 			}

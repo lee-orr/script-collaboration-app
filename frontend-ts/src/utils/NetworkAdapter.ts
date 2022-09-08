@@ -10,7 +10,7 @@ export interface NetworkAdapter<T> {
 	connectionEventListener: (
 		callback: (
 			connection: DataConnection,
-			event: 'open' | 'error' | 'close',
+			event: 'close' | 'error' | 'open',
 			error?: Error
 		) => void
 	) => void
@@ -19,52 +19,46 @@ export interface NetworkAdapter<T> {
 }
 
 const ONE = 1
+const CONNECTION_TIMEOUT = 1000
+const UUID_LEN = 6
 
 export function createPeerNetworkAdapter<T>(): NetworkAdapter<T> {
-	const key = GenerateKey().replaceAll('-', '').substring(0, 8)
+	const key = GenerateKey().replaceAll('-', '').slice(0, UUID_LEN)
 	const id = `${key}`
-	const peer: Peer = new Peer(id, {
-		config: {
-			iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-			sdpSemantics: 'unified-plan'
-		}
-	})
+	const peer: Peer = new Peer(id)
 
 	let listeners: ((message: T) => void)[] = []
 	let connectionEventListener:
-		| undefined
 		| ((
 				connection: DataConnection,
-				event: 'open' | 'error' | 'close',
+				event: 'close' | 'error' | 'open',
 				error?: Error
-		  ) => void) = undefined
+		  ) => void)
+		| undefined
 
 	const connections: DataConnection[] = []
 
 	peer.on('connection', connection => {
 		connections.push(connection)
 		connection.on('data', data => {
-			console.log('Got Message: ', data)
 			for (const listener of listeners) {
 				listener(data as T)
 			}
 		})
 		connection.on('open', () => {
-			console.log('Opened connection', connection)
 			if (connectionEventListener) connectionEventListener(connection, 'open')
 		})
 		connection.on('close', () => {
 			connections.splice(connections.indexOf(connection), ONE)
 			if (connectionEventListener) connectionEventListener(connection, 'close')
 		})
-		connection.on('error', e => {
-			console.error('Connection Error', e)
+		connection.on('error', error => {
 			if (connectionEventListener)
-				connectionEventListener(connection, 'error', e)
+				connectionEventListener(connection, 'error', error)
 		})
 	})
 
-	let currentRemote: string = ''
+	let currentRemote = ''
 
 	return {
 		startHost(): string {
@@ -77,13 +71,11 @@ export function createPeerNetworkAdapter<T>(): NetworkAdapter<T> {
 				const connection = peer.connect(`${remote}`)
 				connections.push(connection)
 				connection.on('data', data => {
-					console.log('Got Message: ', data)
 					for (const listener of listeners) {
 						listener(data as T)
 					}
 				})
 				connection.on('open', () => {
-					console.log('Opened connection', connection)
 					if (connectionEventListener)
 						connectionEventListener(connection, 'open')
 				})
@@ -92,16 +84,14 @@ export function createPeerNetworkAdapter<T>(): NetworkAdapter<T> {
 					if (connectionEventListener)
 						connectionEventListener(connection, 'close')
 				})
-				connection.on('error', e => {
-					console.error('Connection Error', e)
+				connection.on('error', error => {
 					if (connectionEventListener)
-						connectionEventListener(connection, 'error', e)
+						connectionEventListener(connection, 'error', error)
 				})
-			}, 1000)
+			}, CONNECTION_TIMEOUT)
 			return key
 		},
 		sendMessage(message): void {
-			console.log('Sending Message: ', message)
 			for (const connection of connections) {
 				if (connection.open) {
 					connection.send(message)

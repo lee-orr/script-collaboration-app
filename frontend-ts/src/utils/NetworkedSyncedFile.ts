@@ -1,35 +1,44 @@
 import type { SyncedFile } from './SyncedFile'
 import * as Y from 'yjs'
-import { slateNodesToInsertDelta } from '@slate-yjs/core'
-import { Message } from './Message'
-import { NetworkAdapter } from './NetworkAdapter'
+import type { Message } from './Message'
+import type { NetworkAdapter } from './NetworkAdapter'
 import { fromUint8Array, toUint8Array } from 'js-base64'
 
 const files: Record<string, Promise<SyncedFile>> = {}
 
 const SAVE_DELAY = 200
 
-let adapter: NetworkAdapter<Message> | undefined = undefined
+let adapter: NetworkAdapter<Message> | undefined
 
-export function setClientAdapter(updatedAdapter: NetworkAdapter<Message>) {
+export function setClientAdapter(
+	updatedAdapter: NetworkAdapter<Message>
+): void {
 	adapter = updatedAdapter
-	adapter.setListener(async message => {
+	adapter.setListener(message => {
 		switch (message.type) {
 			case 'FullFileState':
 				{
 					const document = files[message.key]
-					if (document) {
-						document.then((file) => file.updateAll(toUint8Array(message.update)))
+					/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+					if (document !== undefined) {
+						void document.then(file =>
+							file.updateAll(toUint8Array(message.update))
+						)
 					}
 				}
 				break
 			case 'FileContentUpdated':
 				{
 					const document = files[message.key]
-					if (document) {
-						document.then((file) => file.updateAll(toUint8Array(message.update)))
+					/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+					if (document !== undefined) {
+						void document.then(file =>
+							file.updateAll(toUint8Array(message.update))
+						)
 					}
 				}
+				break
+			default:
 				break
 		}
 	})
@@ -47,7 +56,7 @@ async function internalGetNetworkSyncedFile(key: string): Promise<SyncedFile> {
 	let timeout: number | false = false
 
 	return {
-		doc() {
+		doc(): Y.Doc {
 			return mainDocument
 		},
 		connect(): { id: number; content: Y.XmlText } {
@@ -78,7 +87,7 @@ async function internalGetNetworkSyncedFile(key: string): Promise<SyncedFile> {
 				content: document.get('content', Y.XmlText) as Y.XmlText
 			}
 		},
-		updateAll(update) {
+		updateAll(update): void {
 			if (timeout) {
 				clearTimeout(timeout)
 			}

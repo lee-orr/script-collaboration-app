@@ -1,4 +1,4 @@
-import { FileListing, FileType } from './FileList'
+import type { FileListing, FileType } from './FileList'
 
 export interface GetCurrentList {
 	type: 'GetCurrentList'

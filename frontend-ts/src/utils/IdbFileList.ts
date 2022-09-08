@@ -15,7 +15,7 @@ export default async function createIdbFileList(
 			update = callback
 		},
 		async createFile(name, type, keyParameter): Promise<string> {
-			const key = keyParameter || GenerateKey()
+			const key = keyParameter ?? GenerateKey()
 			const listing = { name, key, type }
 			const tx = database.transaction(['fileInfo', 'fileContent'], 'readwrite')
 			void tx.objectStore('fileInfo').put(listing, key)
