@@ -12,13 +12,13 @@ import type { FileListing } from 'utils/FileList'
 import withFountain from 'utils/SlateFountain'
 import { Fountain } from "fountain-js"
 
-const fountain = new Fountain()
 
 const serialize = (nodes:Node[]) : string => {
   return nodes.map(n => Node.string(n)).join('\n')
 }
 
 function previewFountain(content: string): string {
+	const fountain = new Fountain()
 	const output = fountain.parse(content)
 	return output.html.title_page + '<br/>' + output.html.script
 }
@@ -37,15 +37,23 @@ export default function Editor({
 	const [preview, setPreview] = useState(false)
 	const { content } = useMemo(() => file.connect(), [file])
 	const [version, setVersion] = useState(0)
+	const [fountain, setFountain] = useState('')
+
 
 	const editor = useMemo(
 		() => withReact(withYjs(withFountain(createEditor()), content)),
 		[content]
 	)
 
-	const [value] = useState([])
 
-	const fountain = useMemo(() => previewFountain(serialize(editor.children)), [version])
+	useMemo(() => {
+		editor.onChange =  () => {
+			setVersion(version + 1)
+			setFountain(previewFountain(serialize(editor.children)))
+		};
+	}, [file])
+
+	const [value] = useState([])
 
 	useEffect(() => {
 		YjsEditor.connect(editor)
@@ -68,8 +76,8 @@ export default function Editor({
 			</div>
 			<div className='flex-grow p-2 h-0'>
 				<div className='w-full h-full overflow-y-scroll' style={preview ? { position: 'fixed', bottom: '-200vh' } : {}}>
-					<Slate editor={editor} value={value} onChange={() => setVersion(version + 1)}>
-						<Editable renderElement={renderElement}/>
+					<Slate editor={editor} value={value}>
+						<Editable/>
 					</Slate>
 				</div>
 				{preview ? <div key={version} className='w-full h-full overflow-y-scroll script' dangerouslySetInnerHTML={{__html: fountain}}></div> : <></>}

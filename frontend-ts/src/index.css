@@ -50,6 +50,10 @@
 	text-decoration: underline;
 }
 
+.script .italic {
+	font-style: italic;
+}
+
 .script h1 {
 	text-align: center;
 	margin: 1.3em 0;
