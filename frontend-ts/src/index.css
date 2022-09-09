@@ -41,3 +41,91 @@
 	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
 	cursor: col-resize;
 }
+
+.script .bold {
+	font-weight: 700;
+}
+
+.script .underline {
+	text-decoration: underline;
+}
+
+.script h1 {
+	text-align: center;
+	margin: 1.3em 0;
+	text-decoration: underline;
+	font-weight: bold;
+	text-transform: uppercase;
+}
+
+.script .credit, .script .authors, .script .source {
+		text-align: center;
+}
+
+
+.script .source {
+	padding-top: 1.3em;
+}
+
+.script h3 {
+	text-transform: uppercase;
+	margin-top: 2.6em;
+	font-weight: bold;
+	position: relative;
+	padding-right: 40px;
+}
+
+.script .dialogue {
+	margin: 0 auto;
+	width: 310px;
+}
+
+.script h2 {
+	text-transform: uppercase;
+	text-align: right;
+}
+
+.script h4 {
+	text-transform: uppercase;
+	margin: 1.3em auto 0;
+	width: 180px;
+}
+
+.script .parenthetical {
+	margin: 0 auto;
+	width: 250px;
+}
+
+.script .dual-dialogue {
+	overflow: hidden;
+	display: flex;
+	justify-content: center;
+}
+
+.script .dual-dialogue .dialogue,
+.script .dual-dialogue .dialogue {
+	width: 228px;
+}
+
+.script .dual-dialogue p {
+	width: auto;
+}
+
+.script .dual-dialogue .character {
+	text-align: center;
+	padding-left: 40px;
+}
+
+.script .dual-dialogue .parenthetical {
+	padding-left: 40px;
+}
+
+.script .centered {
+	text-align: center !important;
+}
+
+.script p {
+	margin: 1.3em auto;
+	word-wrap: break-word;
+	padding: 0 10px;
+}
