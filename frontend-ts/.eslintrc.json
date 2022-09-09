@@ -22,7 +22,7 @@
 		"plugin:react-prefer-function-component/recommended",
 		"prettier"
 	],
-	"ignorePatterns": ["fountain/**"],
+	"ignorePatterns": ["fountain/**", "src/fountain-js/**"],
 	"rules": {
 		"no-dupe-else-if": "error",
 		"no-promise-executor-return": "error",

@@ -1,19 +1,19 @@
-import { Transforms, Element, Node, Editor, BaseEditor, Path } from 'slate'
-import { ReactEditor } from 'slate-react'
+import type { Editor, BaseEditor } from 'slate'
+import type { ReactEditor } from 'slate-react'
 
 interface TitleElement {
-    type: 'title'
-    children: CustomText[]
+	type: 'title'
+	children: CustomText[]
 }
 
 interface TitleElementKey {
-    type: 'title_element_key'
-    children: CustomText[]
+	type: 'title_element_key'
+	children: CustomText[]
 }
 
 interface TitleElementContent {
-    type: 'title_element_content'
-    children: CustomText[]
+	type: 'title_element_content'
+	children: CustomText[]
 }
 
 interface RawText {
@@ -28,21 +28,20 @@ interface CustomText {
 declare module 'slate' {
 	interface CustomTypes {
 		Editor: BaseEditor & ReactEditor
-		Element: RawText | TitleElement | TitleElementKey | TitleElementContent
+		Element: RawText | TitleElement | TitleElementContent | TitleElementKey
 		Text: CustomText
 	}
 }
 
 const withFountain = (editor: Editor): Editor => {
-  const { normalizeNode } = editor
+	const { normalizeNode } = editor
 
-  editor.normalizeNode = (entry) : void => {
-    const [node, path] = entry
+	/* eslint-disable no-param-reassign */
+	editor.normalizeNode = (entry): void => {
+		normalizeNode(entry)
+	}
 
-    normalizeNode(entry)
-  }
-
-  return editor
+	return editor
 }
 
 export default withFountain

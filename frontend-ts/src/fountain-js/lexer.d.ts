@@ -1,7 +1,7 @@
 export declare class Lexer {
-    reconstruct(script: string): string;
+	reconstruct(script: string): string
 }
 export declare class InlineLexer extends Lexer {
-    private inline;
-    reconstruct(line: string): string;
+	private readonly inline
+	reconstruct(line: string): string
 }

@@ -1,5 +1,6 @@
-import { Token } from './token';
+import type { Token } from './token'
+
 export declare class Scanner {
-    private tokens;
-    tokenize(script: string): Token[];
+	private readonly tokens
+	tokenize(script: string): Token[]
 }

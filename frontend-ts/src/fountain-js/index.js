@@ -1,3 +1,3 @@
-export * from './fountain';
-export * from './token';
+export * from './fountain'
+export * from './token'
 //# sourceMappingURL=index.js.map

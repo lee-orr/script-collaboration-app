@@ -62,10 +62,11 @@
 	text-transform: uppercase;
 }
 
-.script .credit, .script .authors, .script .source {
-		text-align: center;
+.script .credit,
+.script .authors,
+.script .source {
+	text-align: center;
 }
-
 
 .script .source {
 	padding-top: 1.3em;
@@ -100,13 +101,22 @@
 	width: 250px;
 }
 
+.script .centered {
+	text-align: center !important;
+}
+
+.script p {
+	margin: 1.3em auto;
+	word-wrap: break-word;
+	padding: 0 10px;
+}
+
 .script .dual-dialogue {
 	overflow: hidden;
 	display: flex;
 	justify-content: center;
 }
 
-.script .dual-dialogue .dialogue,
 .script .dual-dialogue .dialogue {
 	width: 228px;
 }
@@ -122,14 +132,4 @@
 
 .script .dual-dialogue .parenthetical {
 	padding-left: 40px;
-}
-
-.script .centered {
-	text-align: center !important;
-}
-
-.script p {
-	margin: 1.3em auto;
-	word-wrap: break-word;
-	padding: 0 10px;
 }

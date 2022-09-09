@@ -38,7 +38,6 @@
 		"y-indexeddb": "9.0.9",
 		"y-webrtc": "10.2.3",
 		"yjs": "13.5.41"
-
 	},
 	"devDependencies": {
 		"@nabla/vite-plugin-eslint": "1.4.1",
