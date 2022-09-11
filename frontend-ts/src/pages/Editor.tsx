@@ -102,7 +102,7 @@ export default function Editor({
 	)
 
 	const renderLeaf = useCallback(({ attributes, children, leaf }: RenderLeafProps) => {
-		if (leaf.text === '&nbsp;') {
+		if (leaf.text.trim() === '&nbsp;') {
 			return <span {...attributes} className='text-xs text-gray-700'>{children}</span>
 		}
 		if (leaf.text.startsWith('(') && leaf.text.endsWith(')')) {
