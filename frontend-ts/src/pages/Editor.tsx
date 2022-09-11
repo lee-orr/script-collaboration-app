@@ -1,7 +1,7 @@
 import Button from 'components/Button'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createEditor, Node } from 'slate'
+import { createEditor, Node, NodeEntry, Text, Location } from 'slate'
 import type { RenderElementProps, RenderLeafProps } from 'slate-react'
 import { Editable, withReact, Slate } from 'slate-react'
 import { withYjs, YjsEditor } from '@slate-yjs/core'
@@ -10,6 +10,7 @@ import Input from 'components/Input'
 import type { FileListing } from 'utils/FileList'
 import withFountain from 'utils/SlateFountain'
 import { Fountain } from 'fountain-js'
+
 
 const serialize = (nodes: Node[]): string =>
 	nodes.map(n => Node.string(n)).join('\n')
@@ -107,14 +108,90 @@ export default function Editor({
 		if (leaf.text.startsWith('(') && leaf.text.endsWith(')')) {
 			return <span {...attributes} className='text-sm text-gray-400'>{children}</span>
 		}
+
+		let className = '';
+
+		if (leaf.bold) className += ' font-bold'
+		if (leaf.underline) className += ' underline'
+		if (leaf.italic) className += ' italic'
+		if (leaf.note) className += ' bg-slate-900 text-gray-400'
+		
 		return (
 		  <span
 			{...attributes}
+			className={className}
 		  >
 			{children}
 		  </span>
 		)
 	  }, [])
+
+	const decorate = useCallback(([node, path]: NodeEntry<Node>) => {
+		if (!Text.isText(node))
+			return []
+		
+		const ranges: Array<{bold?: boolean, underline?: boolean, italic?: boolean, note?: boolean, anchor: Location, focus: Location}> = [];
+
+		const text = node.text;
+
+		let start = 0;
+		let end = 0;
+		let currentState = {
+			bold: false,
+			underline: false,
+			italic: false,
+			note: false
+		}
+
+		function setRange(update: {bold?: boolean, underline?: boolean, italic?: boolean, note?: boolean}) {
+			ranges.push({
+				...currentState,
+				anchor: {path, offset: start},
+				focus: {path, offset: end}
+			})
+			start = end;
+			currentState = {...currentState, ...update}
+		}
+
+		for (let i = 0; i < text.length; i++) {
+			if (text[i] === '_') {
+				if (currentState.underline) {
+					end = i + 1
+				}
+				setRange({ underline: !currentState.underline})
+			}
+			if (text[i] === '*' && text[i + 1] === '*' && text[i + 2] === '*') {
+				end = i + 3
+				setRange({ bold: !currentState.bold, italic: !currentState.italic})
+				i = i + 3
+			}
+			if (text[i] === '*' && text[i + 1] === '*') {
+				end = i + 1
+				setRange({ bold: !currentState.bold})
+				i = i + 1
+			}
+			if (text[i] === '*') {
+				if (currentState.italic) {
+					end = i + 1
+				}
+				setRange({ italic: !currentState.italic})
+			}
+			if (text[i] === '[' && text[i + 1] === '[') {
+				end = i
+				setRange({ note: true})
+				i = i + 1
+			}
+			if (text[i] === ']' && text[i - 1] === ']') {
+				end = i + 1
+				setRange({note: false})
+			}
+			end = i
+		}
+		
+		setRange({})
+
+		return ranges
+	}, [])
 
 	return (
 		<div className='flex flex-col items-stretch justify-start'>
@@ -131,7 +208,7 @@ export default function Editor({
 					style={preview ? { position: 'fixed', bottom: '-200vh' } : {}}
 				>
 					<Slate editor={editor} value={value}>
-						<Editable renderElement={renderElement} renderLeaf={renderLeaf} />
+						<Editable renderElement={renderElement} renderLeaf={renderLeaf} decorate={decorate} />
 					</Slate>
 				</div>
 				{preview ? (

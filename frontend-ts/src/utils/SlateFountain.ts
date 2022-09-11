@@ -53,7 +53,8 @@ interface BoneYard {
 }
 
 interface CustomText {
-	text: string
+	text: string,
+	bold?: boolean, underline?: boolean, italic?: boolean, note?: boolean
 }
 
 declare module 'slate' {
@@ -132,7 +133,7 @@ function ProcessTitle(node: Element, editor: Editor, path: Path, currentText: st
 }
 
 function ProcessDialogue(node: Element, editor: Editor, path: Path, currentText: string, previous_element: false | Element): boolean {
-	if (currentText.length === 0 || node.type === 'transition') return false;
+	if (currentText.length === 0 || node.type === 'transition' || node.type === 'scene_header') return false;
 	if ((!previous_element || previous_element.type === 'empty') && (currentText.startsWith('@') || currentText === currentText.toUpperCase()) && node.type !== 'character') {
 		Transforms.setNodes(editor, { type: 'character', children: [{ text: currentText }] }, { at: path })
 		return true
@@ -211,7 +212,7 @@ function ProcessArbitraryControls(node: Element, editor: Editor, path: Path, cur
 		Transforms.setNodes(editor, { type: 'boneyard', containsStart: true, containsEnd: false}, {at: path})
 		return true
 	}
-	if (currentText.endsWith('*/') && node.type !== 'boneyard' && previous_element && previous_element.type === 'boneyard') {
+	if (currentText.endsWith('*/') && (node.type !== 'boneyard' || !node.containsEnd) && previous_element && previous_element.type === 'boneyard') {
 		Transforms.setNodes(editor, { type: 'boneyard', containsEnd: true, containsStart: false}, {at: path})
 		return true
 	}
@@ -223,7 +224,7 @@ function ProcessArbitraryControls(node: Element, editor: Editor, path: Path, cur
 		Transforms.setNodes(editor, { type: 'raw', children: [{ text: currentText }] }, { at: path })
 		return true
 	}
-	if (node.type === 'boneyard' && !node.containsStart && (!previous_element || previous_element.type !== 'boneyard')) {
+	if (node.type === 'boneyard' && !node.containsStart && (!previous_element || previous_element.type !== 'boneyard' || previous_element.containsEnd)) {
 		Transforms.setNodes(editor, { type: 'raw', children: [{ text: currentText }] }, { at: path })
 		return true
 	}
