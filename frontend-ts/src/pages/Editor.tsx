@@ -59,8 +59,8 @@ export default function Editor({
 
 	const renderElement = useCallback(
 		/* eslint-disable react/jsx-props-no-spreading */
-		({ attributes, children }: RenderElementProps): JSX.Element => (
-			<p {...attributes}>{children}</p>
+		({ attributes, children, element }: RenderElementProps): JSX.Element => (
+			<p className={`slate-element slate-${element.type}`} {...attributes}>{children}</p>
 		),
 		[]
 	)

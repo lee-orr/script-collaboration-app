@@ -133,3 +133,27 @@
 .script .dual-dialogue .parenthetical {
 	padding-left: 40px;
 }
+
+.slate-element {
+	position: relative;
+}
+
+.slate-element::after {
+	color: rgb(165, 165, 165);
+	font-size: 11px;
+	position: absolute;
+	top:100%;
+	background-color: rgba(0, 0, 0, 0.493);
+}
+
+.slate-raw::after {
+	content: 'raw';
+}
+
+.slate-empty::after {
+	content: 'empty';
+}
+
+.slate-title_element::after {
+	content: 'title element';
+}
