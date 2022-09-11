@@ -142,7 +142,10 @@
 	color: rgb(165, 165, 165);
 	font-size: 11px;
 	position: absolute;
-	top:100%;
+	transform: translateX(20px) scale(0.8);
+	padding: 1px;
+	top: 0;
+	bottom: 0;
 	background-color: rgba(0, 0, 0, 0.493);
 }
 
@@ -156,4 +159,31 @@
 
 .slate-title_element::after {
 	content: 'title element';
+}
+
+.slate-character::after {
+	content: 'character';
+}
+
+.slate-dialogue::after {
+	content: 'dialogue';
+}
+
+.slate-scene_header::after {
+	content: 'scene header';
+}
+
+.slate-transition::after {
+	content: 'transition';
+}
+
+.slate-lyrics::after {
+	content: 'lyrics';
+}
+.slate-page_break::after {
+	content: 'page break';
+}
+
+.slate-boneyard::after {
+	content: 'boneyard';
 }
