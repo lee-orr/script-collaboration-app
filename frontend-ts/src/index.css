@@ -138,7 +138,7 @@
 	position: relative;
 }
 
-.slate-element::after {
+.slate-control .slate-element::after {
 	color: rgb(165, 165, 165);
 	font-size: 11px;
 	position: absolute;
@@ -149,41 +149,41 @@
 	background-color: rgba(0, 0, 0, 0.493);
 }
 
-.slate-raw::after {
+.slate-control .slate-raw::after {
 	content: 'raw';
 }
 
-.slate-empty::after {
+.slate-control .slate-empty::after {
 	content: 'empty';
 }
 
-.slate-title_element::after {
+.slate-control .slate-title_element::after {
 	content: 'title element';
 }
 
-.slate-character::after {
+.slate-control .slate-character::after {
 	content: 'character';
 }
 
-.slate-dialogue::after {
+.slate-control .slate-dialogue::after {
 	content: 'dialogue';
 }
 
-.slate-scene_header::after {
+.slate-control .slate-scene_header::after {
 	content: 'scene header';
 }
 
-.slate-transition::after {
+.slate-control .slate-transition::after {
 	content: 'transition';
 }
 
-.slate-lyrics::after {
+.slate-control .slate-lyrics::after {
 	content: 'lyrics';
 }
-.slate-page_break::after {
+.slate-control .slate-page_break::after {
 	content: 'page break';
 }
 
-.slate-boneyard::after {
+.slate-control .slate-boneyard::after {
 	content: 'boneyard';
 }
