@@ -1,0 +1,1 @@
+import{a as s}from"./index.2a7113cd.js";function l({click:t,label:e,disabled:a=!1}){return s("button",{type:"button",className:"bg-slate-900 p-2 text-gray-200 hover:bg-slate-700 active:bg-slate-800 disabled:bg-slate-700 disabled:text-slate-500",onClick:t,disabled:a,children:e})}l.defaultProps={disabled:!1};export{l as B};
