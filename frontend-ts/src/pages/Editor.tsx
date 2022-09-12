@@ -70,20 +70,12 @@ export default function Editor({
 				case 'title_element':
 					className += 'text-sm text-gray-400'
 					break;
-				case 'character':
-					className += 'text-center text-lg'
-					break;
-				case 'dialogue':
-					className += 'text-center'
-					break;
 				case 'lyrics':
 					className += 'text-left pl-[20%]'
 					break;
 				case 'scene_header':
-					className += 'text-left text-2xl'
 					break;
 				case 'transition':
-					className += 'text-right text-lg'
 					break;
 				case 'page_break':
 					className += 'text-xs text-gray-400 border-b-2 border-gray-900'
@@ -102,11 +94,8 @@ export default function Editor({
 	)
 
 	const renderLeaf = useCallback(({ attributes, children, leaf }: RenderLeafProps) => {
-		if (leaf.text.trim() === '&nbsp;') {
-			return <span {...attributes} className='text-xs text-gray-700'>{children}</span>
-		}
-		if (leaf.text.startsWith('(') && leaf.text.endsWith(')')) {
-			return <span {...attributes} className='text-sm text-gray-400'>{children}</span>
+		if (leaf.text.trim() === '&nbsp' || leaf.text.trim() === ';' || leaf.text.trim() === '&nbsp;') {
+			return <span {...attributes} className='text-gray-700'>{children}</span>
 		}
 
 		let className = '';
@@ -204,7 +193,7 @@ export default function Editor({
 			</div>
 			<div className='h-0 flex-grow p-2'>
 				<div
-					className='h-full w-full overflow-y-scroll'
+					className='h-full w-full overflow-y-scroll p-6'
 					style={preview ? { position: 'fixed', bottom: '-200vh' } : {}}
 				>
 					<Slate editor={editor} value={value}>
@@ -214,7 +203,7 @@ export default function Editor({
 				{preview ? (
 					<div
 						key={version}
-						className='script h-full w-full overflow-y-scroll'
+						className='script h-full w-full overflow-y-scroll p-6'
 						/* eslint-disable react/no-danger */
 						dangerouslySetInnerHTML={{ __html: fountain }}
 					/>

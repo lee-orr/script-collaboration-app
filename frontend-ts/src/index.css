@@ -72,7 +72,8 @@
 	padding-top: 1.3em;
 }
 
-.script h3 {
+.script h3,
+.slate-scene_header {
 	text-transform: uppercase;
 	margin-top: 2.6em;
 	font-weight: bold;
@@ -80,17 +81,20 @@
 	padding-right: 40px;
 }
 
-.script .dialogue {
+.script .dialogue,
+.slate-dialogue {
 	margin: 0 auto;
 	width: 310px;
 }
 
-.script h2 {
+.script h2,
+.slate-transition {
 	text-transform: uppercase;
 	text-align: right;
 }
 
-.script h4 {
+.script h4,
+.slate-character {
 	text-transform: uppercase;
 	margin: 1.3em auto 0;
 	width: 180px;
@@ -105,7 +109,8 @@
 	text-align: center !important;
 }
 
-.script p {
+.script p,
+.slate-dialogue {
 	margin: 1.3em auto;
 	word-wrap: break-word;
 	padding: 0 10px;
