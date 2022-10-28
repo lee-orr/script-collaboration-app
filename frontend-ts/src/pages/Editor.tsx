@@ -1,7 +1,9 @@
+/* eslint @typescript-eslint/no-magic-numbers: 0 */
 import Button from 'components/Button'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createEditor, Node, NodeEntry, Text, Location } from 'slate'
+import type { NodeEntry, BasePoint } from 'slate'
+import { createEditor, Node, Text } from 'slate'
 import type { RenderElementProps, RenderLeafProps } from 'slate-react'
 import { Editable, withReact, Slate } from 'slate-react'
 import { withYjs, YjsEditor } from '@slate-yjs/core'
@@ -10,7 +12,6 @@ import Input from 'components/Input'
 import type { FileListing } from 'utils/FileList'
 import withFountain from 'utils/SlateFountain'
 import { Fountain } from 'fountain-js'
-
 
 const serialize = (nodes: Node[]): string =>
 	nodes.map(n => Node.string(n)).join('\n')
@@ -61,70 +62,86 @@ export default function Editor({
 	const renderElement = useCallback(
 		/* eslint-disable react/jsx-props-no-spreading */
 		({ attributes, children, element }: RenderElementProps): JSX.Element => {
-			let className = `slate-element slate-${element.type} `;
-			let currentText = element.children.map((t): string => t.text).join('');
+			let styles = `slate-element slate-${element.type} `
+			const currentText = element.children.map((t): string => t.text).join('')
 			if (currentText.startsWith('>') && currentText.endsWith('<')) {
-				className += 'text-center'
+				styles += 'text-center'
 			}
 			switch (element.type) {
 				case 'title_element':
-					className += 'text-sm text-gray-400'
-					break;
+					styles += 'text-sm text-gray-400'
+					break
 				case 'lyrics':
-					className += 'text-left pl-[20%]'
-					break;
+					styles += 'text-left pl-[20%]'
+					break
 				case 'scene_header':
-					break;
+					break
 				case 'transition':
-					break;
+					break
 				case 'page_break':
-					className += 'text-xs text-gray-400 border-b-2 border-gray-900'
-					break;
+					styles += 'text-xs text-gray-400 border-b-2 border-gray-900'
+					break
 				case 'boneyard':
-					className += `text-xs bg-slate-900 pl-2 text-gray-400`
-					break;
+					styles += `text-xs bg-slate-900 pl-2 text-gray-400`
+					break
 				default:
-					break;
+					break
 			}
 			return (
-			<p className={className} {...attributes}>{children}</p>
-		)
-			},
+				<p className={styles} {...attributes}>
+					{children}
+				</p>
+			)
+		},
 		[]
 	)
 
-	const renderLeaf = useCallback(({ attributes, children, leaf }: RenderLeafProps) => {
-		if (leaf.text.trim() === '&nbsp' || leaf.text.trim() === ';' || leaf.text.trim() === '&nbsp;') {
-			return <span {...attributes} className='text-gray-700'>{children}</span>
-		}
+	const renderLeaf = useCallback(
+		({ attributes, children, leaf }: RenderLeafProps) => {
+			if (
+				leaf.text.trim() === '&nbsp' ||
+				leaf.text.trim() === ';' ||
+				leaf.text.trim() === '&nbsp;'
+			) {
+				return (
+					<span {...attributes} className='text-gray-700'>
+						{children}
+					</span>
+				)
+			}
 
-		let className = '';
+			let styles = ''
 
-		if (leaf.bold) className += ' font-bold'
-		if (leaf.underline) className += ' underline'
-		if (leaf.italic) className += ' italic'
-		if (leaf.note) className += ' bg-slate-900 text-gray-400'
-		
-		return (
-		  <span
-			{...attributes}
-			className={className}
-		  >
-			{children}
-		  </span>
-		)
-	  }, [])
+			if (leaf.bold) styles += ' font-bold'
+			if (leaf.underline) styles += ' underline'
+			if (leaf.italic) styles += ' italic'
+			if (leaf.note) styles += ' bg-slate-900 text-gray-400'
 
-	const decorate = useCallback(([node, path]: NodeEntry<Node>) => {
-		if (!Text.isText(node))
-			return []
-		
-		const ranges: Array<{bold?: boolean, underline?: boolean, italic?: boolean, note?: boolean, anchor: Location, focus: Location}> = [];
+			return (
+				<span {...attributes} className={styles}>
+					{children}
+				</span>
+			)
+		},
+		[]
+	)
 
-		const text = node.text;
+	const decorate = useCallback(([node, path]: NodeEntry) => {
+		if (!Text.isText(node)) return []
 
-		let start = 0;
-		let end = 0;
+		const ranges: {
+			bold?: boolean
+			underline?: boolean
+			italic?: boolean
+			note?: boolean
+			anchor: BasePoint
+			focus: BasePoint
+		}[] = []
+
+		const { text } = node
+
+		let start = 0
+		let end = 0
 		let currentState = {
 			bold: false,
 			underline: false,
@@ -132,51 +149,60 @@ export default function Editor({
 			note: false
 		}
 
-		function setRange(update: {bold?: boolean, underline?: boolean, italic?: boolean, note?: boolean}) {
+		function setRange(update: {
+			bold?: boolean
+			underline?: boolean
+			italic?: boolean
+			note?: boolean
+		}): void {
 			ranges.push({
 				...currentState,
-				anchor: {path, offset: start},
-				focus: {path, offset: end}
+				anchor: { path, offset: start },
+				focus: { path, offset: end }
 			})
-			start = end;
-			currentState = {...currentState, ...update}
+			start = end
+			currentState = { ...currentState, ...update }
 		}
 
-		for (let i = 0; i < text.length; i++) {
-			if (text[i] === '_') {
+		for (let index = 0; index < text.length; index += 1) {
+			if (text[index] === '_') {
 				if (currentState.underline) {
-					end = i + 1
+					end = index + 1
 				}
-				setRange({ underline: !currentState.underline})
+				setRange({ underline: !currentState.underline })
 			}
-			if (text[i] === '*' && text[i + 1] === '*' && text[i + 2] === '*') {
-				end = i + 3
-				setRange({ bold: !currentState.bold, italic: !currentState.italic})
-				i = i + 3
+			if (
+				text[index] === '*' &&
+				text[index + 1] === '*' &&
+				text[index + 2] === '*'
+			) {
+				end = index + 3
+				setRange({ bold: !currentState.bold, italic: !currentState.italic })
+				index += 3
 			}
-			if (text[i] === '*' && text[i + 1] === '*') {
-				end = i + 1
-				setRange({ bold: !currentState.bold})
-				i = i + 1
+			if (text[index] === '*' && text[index + 1] === '*') {
+				end = index + 1
+				setRange({ bold: !currentState.bold })
+				index += 1
 			}
-			if (text[i] === '*') {
+			if (text[index] === '*') {
 				if (currentState.italic) {
-					end = i + 1
+					end = index + 1
 				}
-				setRange({ italic: !currentState.italic})
+				setRange({ italic: !currentState.italic })
 			}
-			if (text[i] === '[' && text[i + 1] === '[') {
-				end = i
-				setRange({ note: true})
-				i = i + 1
+			if (text[index] === '[' && text[index + 1] === '[') {
+				end = index
+				setRange({ note: true })
+				index += 1
 			}
-			if (text[i] === ']' && text[i - 1] === ']') {
-				end = i + 1
-				setRange({note: false})
+			if (text[index] === ']' && text[index - 1] === ']') {
+				end = index + 1
+				setRange({ note: false })
 			}
-			end = i
+			end = index
 		}
-		
+
 		setRange({})
 
 		return ranges
@@ -197,7 +223,11 @@ export default function Editor({
 					style={preview ? { position: 'fixed', bottom: '-200vh' } : {}}
 				>
 					<Slate editor={editor} value={value}>
-						<Editable renderElement={renderElement} renderLeaf={renderLeaf} decorate={decorate} />
+						<Editable
+							renderElement={renderElement}
+							renderLeaf={renderLeaf}
+							decorate={decorate}
+						/>
 					</Slate>
 				</div>
 				{preview ? (

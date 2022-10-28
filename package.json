@@ -1,6 +1,6 @@
 {
     "scripts": {
-        "setup": "rustup target add wasm32-unknown-unknown && cargo install wasm-pack && cd frontend && npm install",
+        "setup": "cd frontend && npm install",
         "frontend": "cd ./frontend-ts && pnpm dev",
         "frontend-prod": "cd ./frontend-ts && pnpm build"
     }
